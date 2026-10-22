@@ -17,9 +17,9 @@ def db():
         connection.execute("PRAGMA foreign_keys=ON")
     SaaSBase.metadata.create_all(engine)
     with Session(engine) as session:
+        session.add_all([Organization(id="a", name="Micro Shop", mode="micro"), Organization(id="b", name="Supplier", mode="b2b")])
+        session.flush()
         session.add_all([
-            Organization(id="a", name="Micro Shop", mode="micro"),
-            Organization(id="b", name="Supplier", mode="b2b"),
             Membership(organization_id="a", user_id="alice", role="owner"),
             Membership(organization_id="b", user_id="bob", role="owner"),
             Membership(organization_id="a", user_id="viewer", role="viewer"),
