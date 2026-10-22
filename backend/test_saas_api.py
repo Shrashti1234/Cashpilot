@@ -70,3 +70,19 @@ def test_invoice_and_partial_payment(api):
     identity["user"] = "bob"
     assert client.get(path + "/invoices").status_code == 403
     assert client.post(path + "/customers", json={"name": "Other"}).status_code == 403
+
+
+def test_customer_list_is_tenant_scoped(api):
+    client, identity = api
+    own = client.get("/api/v1/organizations/a/customers")
+    assert own.status_code == 200
+    assert own.json() == {"customers": [{"id": "ca", "name": "Buyer"}]}
+    created = client.post("/api/v1/organizations/a/customers", json={"name": "  New Client  "})
+    assert created.status_code == 201
+    names = {customer["name"] for customer in client.get(
+        "/api/v1/organizations/a/customers").json()["customers"]}
+    assert names == {"Buyer", "New Client"}
+    assert client.get("/api/v1/organizations/b/customers").status_code == 403
+    identity["user"] = "bob"
+    assert client.get("/api/v1/organizations/a/customers").status_code == 403
+    assert client.get("/api/v1/organizations/b/customers").json() == {"customers": []}
