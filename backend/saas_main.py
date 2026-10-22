@@ -4,6 +4,7 @@ Requires SAAS_DATABASE_URL and configured OIDC environment variables.
 Apply 'alembic upgrade head' before starting. Never use legacy demo routes.
 """
 import os
+from urllib.parse import urlsplit
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -39,16 +40,17 @@ async def lifespan(app: FastAPI):
 
 
 def allowed_origins() -> list[str]:
-    """Explicit HTTPS origins, with localhost exceptions for development."""
+    """Require exact browser origins; reject credentials, paths and wildcards."""
     raw = os.getenv("CASH_PILOT_CORS_ORIGINS", "")
-    origins = [value.strip().rstrip("/") for value in raw.split(",") if value.strip()]
+    origins = [value.strip() for value in raw.split(",") if value.strip()]
     for origin in origins:
-        if "*" in origin or not (origin.startswith("https://") or
-                origin.startswith("http://localhost:") or
-                origin.startswith("http://127.0.0.1:")):
-            raise RuntimeError("CORS origins must be HTTPS or localhost")
-        if "/" in origin.split("://", 1)[1]:
-            raise RuntimeError("CORS origin must not contain a path")
+        parsed = urlsplit(origin)
+        localhost = parsed.hostname in ("localhost", "127.0.0.1")
+        scheme_ok = parsed.scheme == "https" or (localhost and parsed.scheme == "http")
+        if (not scheme_ok or not parsed.hostname or parsed.username or parsed.password
+                or parsed.path or parsed.query or parsed.fragment or "*" in origin
+                or parsed.port is not None and not (1 <= parsed.port <= 65535)):
+            raise RuntimeError("CORS origins must be exact HTTPS origins or local development origins")
     return origins
 
 
