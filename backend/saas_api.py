@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from auth_identity import get_verified_identity
 from saas_domain import (
-    Customer, Invoice, TenantAccessDenied, create_invoice, list_invoices,
+    Customer, Invoice, Payment, TenantAccessDenied, create_invoice, list_invoices,
     record_payment, require_member,
 )
 from sqlalchemy import select
@@ -109,6 +109,53 @@ def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity
     except ValueError as exc:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+
+@router.get("/invoices/summary")
+def invoice_summary(organization_id: str, identity: Identity, db: Db):
+    """Aggregate only invoices and payments belonging to the authorized tenant."""
+    try:
+        invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
+        invoice_ids = [item.id for item in invoices_for_org]
+        payments = list(db.scalars(select(Payment).where(
+            Payment.organization_id == organization_id,
+            Payment.invoice_id.in_(invoice_ids)))) if invoice_ids else []
+        paid_by_invoice: dict[str, int] = {}
+        for payment in payments:
+            paid_by_invoice[payment.invoice_id] = (
+                paid_by_invoice.get(payment.invoice_id, 0) + payment.amount_paise)
+        today = date.today()
+        total = sum(item.total_paise for item in invoices_for_org)
+        paid = sum(paid_by_invoice.values())
+        overdue = sum(
+            item.total_paise - paid_by_invoice.get(item.id, 0)
+            for item in invoices_for_org
+            if item.due_date < today and item.total_paise > paid_by_invoice.get(item.id, 0)
+        )
+        return {"total_invoiced_paise": total, "paid_paise": paid,
+                "outstanding_paise": total - paid, "overdue_paise": overdue,
+                "invoice_count": len(invoices_for_org)}
+    except TenantAccessDenied:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@router.get("/invoices/{invoice_id}/payments")
+def invoice_payments(organization_id: str, invoice_id: str, identity: Identity, db: Db):
+    try:
+        require_member(db, identity, organization_id)
+        invoice = db.scalar(select(Invoice).where(
+            Invoice.organization_id == organization_id, Invoice.id == invoice_id))
+        if invoice is None:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        payments = db.scalars(select(Payment).where(
+            Payment.organization_id == organization_id,
+            Payment.invoice_id == invoice_id).order_by(Payment.created_at))
+        return {"payments": [{"id": item.id, "amount_paise": item.amount_paise,
+                              "created_at": item.created_at.isoformat()}
+                             for item in payments]}
+    except TenantAccessDenied:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @router.post("/invoices/{invoice_id}/payments", status_code=201)
