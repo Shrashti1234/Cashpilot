@@ -86,3 +86,35 @@ def test_customer_list_is_tenant_scoped(api):
     identity["user"] = "bob"
     assert client.get("/api/v1/organizations/a/customers").status_code == 403
     assert client.get("/api/v1/organizations/b/customers").json() == {"customers": []}
+
+
+def test_invoice_summary_and_payment_history_are_tenant_scoped(api):
+    client, identity = api
+    base = "/api/v1/organizations/a"
+    created = client.post(base + "/invoices", json={
+        "customer_id": "ca", "invoice_number": "INV-SUMMARY",
+        "due_date": "2020-01-01", "total_paise": 12500})
+    assert created.status_code == 201, created.text
+    invoice_id = created.json()["id"]
+    summary = client.get(base + "/invoices/summary")
+    assert summary.status_code == 200, summary.text
+    assert summary.json() == {
+        "total_invoiced_paise": 12500, "paid_paise": 0,
+        "outstanding_paise": 12500, "overdue_paise": 12500,
+        "invoice_count": 1}
+    payment = client.post(base + f"/invoices/{invoice_id}/payments",
+                          json={"amount_paise": 2500, "idempotency_key": "summary-payment"})
+    assert payment.status_code == 201
+    summary = client.get(base + "/invoices/summary").json()
+    assert summary["paid_paise"] == 2500
+    assert summary["outstanding_paise"] == 10000
+    assert summary["overdue_paise"] == 10000
+    history = client.get(base + f"/invoices/{invoice_id}/payments")
+    assert history.status_code == 200
+    assert len(history.json()["payments"]) == 1
+    assert history.json()["payments"][0]["amount_paise"] == 2500
+    assert client.get(base + "/invoices/not-found/payments").status_code == 404
+    identity["user"] = "bob"
+    assert client.get(base + "/invoices/summary").status_code == 403
+    assert client.get(base + f"/invoices/{invoice_id}/payments").status_code == 403
+    assert client.get("/api/v1/organizations/b/invoices/summary").json()["invoice_count"] == 0
