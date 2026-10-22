@@ -8,8 +8,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from auth_identity import get_verified_identity
 from saas_domain import (
@@ -62,6 +61,18 @@ def invoices(organization_id: str, identity: Identity, db: Db):
     try:
         return {"invoices": [invoice_out(x) for x in list_invoices(
             db, user_id=identity, organization_id=organization_id)]}
+    except TenantAccessDenied:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+
+@router.get("/customers")
+def customers(organization_id: str, identity: Identity, db: Db):
+    try:
+        require_member(db, identity, organization_id)
+        records = db.scalars(select(Customer).where(
+            Customer.organization_id == organization_id).order_by(Customer.name, Customer.id))
+        return {"customers": [{"id": item.id, "name": item.name} for item in records]}
     except TenantAccessDenied:
         raise HTTPException(status_code=403, detail="Forbidden")
 
