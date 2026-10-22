@@ -16,6 +16,8 @@ from saas_domain import (
     record_payment, require_member,
 )
 from sqlalchemy import select
+from collections_intelligence import Receivable, collections_plan
+from disputes import InvoiceDispute
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
 
@@ -110,6 +112,42 @@ def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc))
 
+
+
+
+@router.get("/collections/plan")
+def collection_recommendations(organization_id: str, identity: Identity, db: Db):
+    """Explainable, human-reviewed recommendations; never contacts customers."""
+    try:
+        invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
+        if not invoices_for_org:
+            return collections_plan([], as_of=date.today())
+        ids = [item.id for item in invoices_for_org]
+        customers_by_id = {
+            item.id: item.name for item in db.scalars(select(Customer).where(
+                Customer.organization_id == organization_id))
+        }
+        paid_by_invoice: dict[str, int] = {}
+        for payment in db.scalars(select(Payment).where(
+            Payment.organization_id == organization_id,
+            Payment.invoice_id.in_(ids))):
+            paid_by_invoice[payment.invoice_id] = (
+                paid_by_invoice.get(payment.invoice_id, 0) + payment.amount_paise)
+        disputed_ids = set(db.scalars(select(InvoiceDispute.invoice_id).where(
+            InvoiceDispute.organization_id == organization_id,
+            InvoiceDispute.invoice_id.in_(ids),
+            InvoiceDispute.status != "resolved")))
+        receivables = [
+            Receivable(invoice_id=invoice.id,
+                       customer_name=customers_by_id.get(invoice.customer_id, "Customer"),
+                       due_date=invoice.due_date,
+                       outstanding_paise=max(invoice.total_paise - paid_by_invoice.get(invoice.id, 0), 0),
+                       disputed=invoice.id in disputed_ids)
+            for invoice in invoices_for_org
+        ]
+        return collections_plan(receivables, as_of=date.today())
+    except TenantAccessDenied:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @router.get("/invoices/summary")
