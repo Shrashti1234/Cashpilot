@@ -6,9 +6,10 @@ Apply 'alembic upgrade head' before starting. Never use legacy demo routes.
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -24,8 +25,12 @@ async def lifespan(app: FastAPI):
     if not database_url.startswith("postgresql+psycopg://"):
         raise RuntimeError("SAAS_DATABASE_URL must use PostgreSQL psycopg")
     engine = create_engine(database_url, pool_pre_ping=True)
-    with engine.connect() as connection:
-        connection.execute(text('SELECT 1'))
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception:
+        engine.dispose()
+        raise
     app.state.session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     try:
         yield
@@ -69,3 +74,17 @@ app.dependency_overrides[get_saas_session] = session_dependency
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "cashpilot-saas"}
+
+
+@app.get("/ready")
+def readiness():
+    """Check database connectivity without leaking SQL errors."""
+    factory = getattr(app.state, "session_factory", None)
+    if factory is None:
+        raise HTTPException(status_code=503, detail="Service not ready")
+    try:
+        with factory() as db:
+            db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        raise HTTPException(status_code=503, detail="Service not ready")
+    return {"status": "ready", "service": "cashpilot-saas"}
