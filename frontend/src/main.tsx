@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, CartesianGrid } from 'recharts';
 import { Activity, ArrowDownLeft, ArrowUpRight, Plus, RefreshCw, Wallet, X } from 'lucide-react';
 import './style.css';
-import { SecureSaaS } from './SecureSaaS';
+import { lazy, Suspense } from 'react';
+const SecureSaaS = lazy(() => import('./SecureSaaS').then(module => ({ default: module.SecureSaaS })));
 import { languageNames, readLanguage, translate, type Language } from './i18n';
 
 type Tx = { id: string; title: string; amount: string; kind: 'income' | 'expense'; category: string; created_at: string };
@@ -60,7 +61,7 @@ function Root() {
   const clientId=import.meta.env.VITE_OIDC_CLIENT_ID;
   const scope=import.meta.env.VITE_OIDC_SCOPE || 'openid profile';
   if(!issuer||!clientId||!issuer.startsWith('https://'))return <div className="workspace-screen"><div className="workspace-content"><h1>Authentication configuration required</h1><p>Set VITE_OIDC_ISSUER (HTTPS) and VITE_OIDC_CLIENT_ID before enabling SaaS mode.</p></div></div>;
-  return <SecureSaaS config={{apiUrl,issuer,clientId,scope}}/>;
+  return <Suspense fallback={<div className="workspace-screen"><div className="workspace-content">Loading secure workspace…</div></div>}><SecureSaaS config={{apiUrl,issuer,clientId,scope}}/></Suspense>;
  }
  return <App/>;
 }
