@@ -1,6 +1,13 @@
 # CashPilot
 
-Real-time cash-flow dashboard for small businesses. Milestone 1 is a local demo, not production-ready.
+Real-time financial intelligence workspace — **local demo MVP v0.2**.
+
+## Implemented
+- Responsive React + TypeScript dashboard with Recharts
+- Transaction creation, search, filters and WebSocket events
+- Persistent transaction storage using SQLAlchemy (SQLite by default, PostgreSQL via DATABASE_URL)
+- Category-median expense anomaly flag in API responses and WebSocket events (simple heuristic, **not** trained ML)
+- Backend API and WebSocket tests
 
 ## Run locally
 
@@ -8,27 +15,22 @@ Backend:
 ```bash
 cd backend
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-Frontend (separate terminal):
+Frontend (second terminal):
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Visit http://localhost:5173 and open two tabs to verify WebSocket synchronization. API documentation: http://localhost:8000/docs.
+Visit http://localhost:5173 and API docs at http://localhost:8000/docs. Add a transaction and refresh to verify SQLite persistence. Open two tabs to verify WebSocket updates.
 
-## Current functionality
-- Add income and expense transactions
-- Live balance, income, expense totals
-- Interactive cash-flow chart
-- Search and filter transaction history
-- WebSocket updates across connected tabs
+Tests: `cd backend && python -m pytest -q`
 
-## Limitations
-Transactions are stored in memory and disappear after backend restart. No authentication, tenant isolation, persistent database, ML, or production-safe event broadcasting yet. Use synthetic data only and do not deploy this version publicly. Next: PostgreSQL, authentication, anomaly detection, forecasting, CSV import, tests, deployment.
+## Important limitations
+**Local development only.** No authentication, user isolation, production event bus, or production-ready security. Do not enter real financial data or deploy publicly. The anomaly heuristic is not fraud detection. The UI does not yet display anomaly events. PostgreSQL needs a compatible driver and configured URL. Next: auth + multi-tenant DB design, anomaly panel, forecast, CSV import, deployment and CI.
