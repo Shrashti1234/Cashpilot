@@ -7,6 +7,8 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -22,6 +24,8 @@ async def lifespan(app: FastAPI):
     if not database_url.startswith("postgresql+psycopg://"):
         raise RuntimeError("SAAS_DATABASE_URL must use PostgreSQL psycopg")
     engine = create_engine(database_url, pool_pre_ping=True)
+    with engine.connect() as connection:
+        connection.execute(text('SELECT 1'))
     app.state.session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     try:
         yield
@@ -29,7 +33,26 @@ async def lifespan(app: FastAPI):
         engine.dispose()
 
 
+def allowed_origins() -> list[str]:
+    """Explicit HTTPS origins, with localhost exceptions for development."""
+    raw = os.getenv("CASH_PILOT_CORS_ORIGINS", "")
+    origins = [value.strip().rstrip("/") for value in raw.split(",") if value.strip()]
+    for origin in origins:
+        if "*" in origin or not (origin.startswith("https://") or
+                origin.startswith("http://localhost:") or
+                origin.startswith("http://127.0.0.1:")):
+            raise RuntimeError("CORS origins must be HTTPS or localhost")
+        if "/" in origin.split("://", 1)[1]:
+            raise RuntimeError("CORS origin must not contain a path")
+    return origins
+
+
 app = FastAPI(title="CashPilot SaaS API", version="1.0.0-alpha", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware, allow_origins=allowed_origins(),
+    allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 app.include_router(organizations_router)
 app.include_router(invoices_router)
 
