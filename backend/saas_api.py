@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from auth_identity import get_verified_identity
 from saas_domain import (
     Customer, Invoice, TenantAccessDenied, create_invoice, list_invoices,
     record_payment, require_member,
@@ -18,11 +19,6 @@ from saas_domain import (
 from sqlalchemy import select
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
-
-
-def get_verified_identity() -> str:
-    """Override only with a provider-verified identity dependency."""
-    raise HTTPException(status_code=503, detail="Authentication provider not configured")
 
 
 def get_saas_session():
