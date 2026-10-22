@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Plus, RefreshCw, Users, X } from 'lucide-react';
+import { ArrowLeft, FileText, Plus, RefreshCw, Users, X } from 'lucide-react';
 import { languageNames, readLanguage, type Language } from './i18n';
+import { InvoiceManagement } from './InvoiceManagement';
 
 export type BusinessWorkspace = {id:string;name:string;mode:'micro'|'b2b';role:string};
 type Customer = {id:string;name:string};
@@ -10,6 +11,7 @@ const labels = {
  hi:{back:'व्यवसाय बदलें',customers:'ग्राहक',subtitle:'इस व्यवसाय के ग्राहक प्रबंधित करें।',add:'ग्राहक जोड़ें',name:'ग्राहक का नाम',save:'ग्राहक सहेजें',cancel:'रद्द करें',empty:'अभी कोई ग्राहक नहीं है। पहला ग्राहक जोड़ें।',loading:'ग्राहक लोड हो रहे हैं…',failed:'ग्राहक लोड नहीं हो सके।',saveFailed:'ग्राहक सहेजा नहीं जा सका।',retry:'दोबारा कोशिश करें',readonly:'आपके पास केवल देखने की अनुमति है।'}
 };
 export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) {
+ const [invoiceView,setInvoiceView] = useState(false);
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -44,11 +46,12 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   }catch(e){setError(e instanceof Error?e.message:t.saveFailed);}
   finally{setBusy(false);}
  }
+ if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;
  return <div className="workspace-screen">
   <div className="workspace-top"><div className="workspace-brand"><Users size={23}/> CashPilot</div><select aria-label="Language" value={language} onChange={e=>{const next=e.target.value as Language;setLanguage(next);try{localStorage.setItem('cashpilot-language',next)}catch{}}}>{(Object.keys(languageNames) as Language[]).map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></div>
   <div className="workspace-content">
    <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>{t.back}</button>
-   <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div>{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div>
+   <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div><div className="workspace-actions"><button className="workspace-secondary" onClick={()=>setInvoiceView(true)}><FileText size={17}/>Invoices</button>{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div></div>
    {error&&<div className="error" role="alert">{error}<button onClick={()=>void load()} aria-label={t.retry}><RefreshCw size={17}/></button></div>}
    {loading?<div className="workspace-empty">{t.loading}</div>:customers.length===0?<div className="workspace-empty">{t.empty}</div>:<section className="panel"><div className="customer-list">{customers.map(customer=><div className="customer-row" key={customer.id}><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><span>{customer.name}</span></div>)}</div></section>}
    {!canWrite&&<p>{t.readonly}</p>}
