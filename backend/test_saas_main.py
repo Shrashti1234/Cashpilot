@@ -16,3 +16,22 @@ def test_cors_origin_validation(monkeypatch):
     monkeypatch.setenv("CASH_PILOT_CORS_ORIGINS", "https://cashpilot.example/private")
     with pytest.raises(RuntimeError):
         allowed_origins()
+
+
+def test_readiness_without_database_returns_503(monkeypatch):
+    from fastapi import HTTPException
+    from saas_main import app, readiness
+    monkeypatch.delattr(app.state, "session_factory", raising=False)
+    with pytest.raises(HTTPException) as exc:
+        readiness()
+    assert exc.value.status_code == 503
+
+
+def test_readiness_with_database(monkeypatch):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from saas_main import app, readiness
+    engine = create_engine("sqlite://")
+    monkeypatch.setattr(app.state, "session_factory", sessionmaker(bind=engine), raising=False)
+    assert readiness()["status"] == "ready"
+    engine.dispose()
