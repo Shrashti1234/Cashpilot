@@ -22,3 +22,7 @@ The image runs `saas_main:app` on port 8080 as an unprivileged user; it does **n
 - Deploy only to a protected staging environment until authorization tests and audit logging are reviewed.
 - The Docker image deliberately does **not** run database migrations on startup.
 - A passing container build or `/health` does not establish production readiness.
+
+## Continuous integration
+
+The `SaaS container build` workflow builds the Docker image and verifies the non-root runtime user, correct FastAPI entrypoint and Python compilation. It does **not** prove connectivity to a real OIDC provider or PostgreSQL instance. Deploy to staging only after the host is configured with the required secrets.
