@@ -118,3 +118,25 @@ def test_invoice_summary_and_payment_history_are_tenant_scoped(api):
     assert client.get(base + "/invoices/summary").status_code == 403
     assert client.get(base + f"/invoices/{invoice_id}/payments").status_code == 403
     assert client.get("/api/v1/organizations/b/invoices/summary").json()["invoice_count"] == 0
+
+
+def test_collections_plan_prioritizes_overdue_and_blocks_other_tenants(api):
+    client, identity = api
+    base = "/api/v1/organizations/a"
+    created = client.post(base + "/invoices", json={
+        "customer_id": "ca", "invoice_number": "COLLECT-1",
+        "due_date": "2020-01-01", "total_paise": 50000})
+    assert created.status_code == 201
+    invoice_id = created.json()["id"]
+    result = client.get(base + "/collections/plan")
+    assert result.status_code == 200, result.text
+    payload = result.json()
+    assert payload["method"] == "explainable_rules_not_ml"
+    assert payload["total_outstanding_paise"] == 50000
+    assert payload["actions"][0]["invoice_id"] == invoice_id
+    assert payload["actions"][0]["action"] == "review_followup"
+    identity["user"] = "bob"
+    assert client.get(base + "/collections/plan").status_code == 403
+    other = client.get("/api/v1/organizations/b/collections/plan")
+    assert other.status_code == 200
+    assert other.json()["actions"] == []
