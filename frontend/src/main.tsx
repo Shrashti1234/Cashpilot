@@ -42,8 +42,8 @@ function App() {
   refresh();connect();
   return ()=>{stopped=true;window.clearTimeout(timer);ws?.close();};
  },[]);
- const visible=items.filter(t=>(filter==='all'||tx.kind===filter)&&tx.title.toLowerCase().includes(query.toLowerCase()));
- const chart=items.slice().reverse().reduce<{label:string,balance:number}[]>((a,t)=>{const previous=a.length?a[a.length-1].balance:0;return [...a,{label:new Date(tx.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),balance:previous+(tx.kind==='income'?1:-1)*Number(tx.amount)}]},[]);
+ const visible=items.filter(tx=>(filter==='all'||tx.kind===filter)&&tx.title.toLowerCase().includes(query.toLowerCase()));
+ const chart=items.slice().reverse().reduce<{label:string,balance:number}[]>((a,tx)=>{const previous=a.length?a[a.length-1].balance:0;return [...a,{label:new Date(tx.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),balance:previous+(tx.kind==='income'?1:-1)*Number(tx.amount)}]},[]);
  async function submit(e:React.FormEvent){
   e.preventDefault();setBusy(true);
   try {const r=await fetch(API+'/transactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,amount:Number(amount),kind,category})});if(!r.ok)throw new Error('Could not save transaction');await refresh();setModal(false);setTitle('');setAmount('');setError('');}
