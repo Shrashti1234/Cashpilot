@@ -35,3 +35,18 @@ def test_readiness_with_database(monkeypatch):
     monkeypatch.setattr(app.state, "session_factory", sessionmaker(bind=engine), raising=False)
     assert readiness()["status"] == "ready"
     engine.dispose()
+
+
+@pytest.mark.parametrize("origin", [
+    "https://cashpilot.example?unexpected=1",
+    "https://user:password@cashpilot.example",
+    "https://cashpilot.example/#fragment",
+    "https://cashpilot.example:invalid",
+    "https://cashpilot.example:99999",
+    "https://*.example.com",
+])
+def test_cors_rejects_malformed_origins(monkeypatch, origin):
+    from saas_main import allowed_origins
+    monkeypatch.setenv("CASH_PILOT_CORS_ORIGINS", origin)
+    with pytest.raises(RuntimeError):
+        allowed_origins()
