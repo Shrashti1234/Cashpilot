@@ -59,7 +59,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
    const response=await fetch(base+'/invoices',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId,invoice_number:number.trim(),due_date:dueDate,total_paise:Math.round(rupees*100)})});
    if(!response.ok){const detail=await response.json().catch(()=>null);throw new Error(typeof detail?.detail==='string'?detail.detail:'Could not create invoice.');}
    await response.json();
-   setInvoices(current=>[...current,created]);setShowForm(false);setNumber('');setAmount('');setDueDate('');await load();
+   setShowForm(false);setNumber('');setAmount('');setDueDate('');await load();
   }catch(e){setError(e instanceof Error?e.message:'Could not create invoice.');}
   finally{setBusy(false);}
  }
