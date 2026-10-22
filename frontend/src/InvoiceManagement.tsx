@@ -18,6 +18,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
  const [showCollections,setShowCollections]=useState(false);
  const [paymentInvoice,setPaymentInvoice]=useState<Invoice|null>(null);
  const [paymentAmount,setPaymentAmount]=useState('');
+ const [paymentRequestKey,setPaymentRequestKey]=useState(()=>crypto.randomUUID());
  const [paymentHistory,setPaymentHistory]=useState<Payment[]>([]);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -63,7 +64,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
   finally{setBusy(false);}
  }
  async function openPayment(invoice:Invoice){
-  setPaymentInvoice(invoice);setPaymentAmount('');setPaymentHistory([]);setError('');
+  setPaymentInvoice(invoice);setPaymentAmount('');setPaymentRequestKey(crypto.randomUUID());setPaymentHistory([]);setError('');
   try{const response=await fetch(base+'/invoices/'+encodeURIComponent(invoice.id)+'/payments',{headers});if(!response.ok)throw new Error('Could not load payments.');const data:{payments:Payment[]}=await response.json();setPaymentHistory(data.payments);}catch(e){setError(e instanceof Error?e.message:'Could not load payments.');}
  }
  async function submitPayment(e:React.FormEvent){
@@ -72,7 +73,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
   const outstanding=paymentInvoice.total_paise-paymentHistory.reduce((sum,p)=>sum+p.amount_paise,0);
   if(!Number.isSafeInteger(paise)||paise<=0||paise>outstanding){setError('Payment must be positive and no more than the outstanding balance.');return;}
   setBusy(true);setError('');
-  try{const response=await fetch(base+'/invoices/'+encodeURIComponent(paymentInvoice.id)+'/payments',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({amount_paise:paise,idempotency_key:crypto.randomUUID()})});if(!response.ok){const body=await response.json().catch(()=>null);throw new Error(typeof body?.detail==='string'?body.detail:'Could not save payment.');}setPaymentInvoice(null);await load();}catch(e){setError(e instanceof Error?e.message:'Could not save payment.');}finally{setBusy(false);}
+  try{const response=await fetch(base+'/invoices/'+encodeURIComponent(paymentInvoice.id)+'/payments',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({amount_paise:paise,idempotency_key:paymentRequestKey})});if(!response.ok){const body=await response.json().catch(()=>null);throw new Error(typeof body?.detail==='string'?body.detail:'Could not save payment.');}setPaymentInvoice(null);setPaymentRequestKey(crypto.randomUUID());await load();}catch(e){setError(e instanceof Error?e.message:'Could not save payment.');}finally{setBusy(false);}
  }
  const customerName=(id:string)=>customers.find(c=>c.id===id)?.name??'Customer';
  return <div className="workspace-screen">
