@@ -21,6 +21,9 @@ TABLES = (
 
 
 def upgrade():
+    # SQLite is used only for local schema parity tests; RLS is PostgreSQL-specific.
+    if op.get_bind().dialect.name != "postgresql":
+        return
     # FastAPI performs identity verification and tenant authorization.
     # Do not grant direct PostgREST access until tenant-specific policies exist.
     for table in TABLES:
