@@ -20,4 +20,4 @@ jobs:
           docker image inspect cashpilot-saas:ci --format '{{.Config.User}}' | grep -qx app
           docker image inspect cashpilot-saas:ci --format '{{json .Config.Cmd}}' | grep -q 'saas_main:app'
       - name: Compile Python modules inside image
-        run: docker run --rm --entrypoint python cashpilot-saas:ci -m compileall -q -b /app
+        run: docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/cashpilot-pycache --entrypoint python cashpilot-saas:ci -m compileall -q /app
