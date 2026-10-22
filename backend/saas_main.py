@@ -45,11 +45,15 @@ def allowed_origins() -> list[str]:
     origins = [value.strip() for value in raw.split(",") if value.strip()]
     for origin in origins:
         parsed = urlsplit(origin)
+        try:
+            port = parsed.port
+        except ValueError:
+            raise RuntimeError("CORS origin has invalid port") from None
         localhost = parsed.hostname in ("localhost", "127.0.0.1")
         scheme_ok = parsed.scheme == "https" or (localhost and parsed.scheme == "http")
         if (not scheme_ok or not parsed.hostname or parsed.username or parsed.password
                 or parsed.path or parsed.query or parsed.fragment or "*" in origin
-                or parsed.port is not None and not (1 <= parsed.port <= 65535)):
+                or port is not None and not (1 <= port <= 65535)):
             raise RuntimeError("CORS origins must be exact HTTPS origins or local development origins")
     return origins
 
