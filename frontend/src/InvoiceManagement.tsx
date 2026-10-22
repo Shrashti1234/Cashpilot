@@ -6,12 +6,16 @@ type Customer={id:string;name:string};
 type Invoice={id:string;customer_id:string;invoice_number:string;due_date:string;total_paise:number};
 type Summary={total_invoiced_paise:number;paid_paise:number;outstanding_paise:number;overdue_paise:number;invoice_count:number};
 type Payment={id:string;amount_paise:number;created_at:string};
+type CollectionAction={invoice_id:string;customer_name:string;outstanding_paise:number;overdue_days:number;action:string;reason:string;priority_score:number};
+type CollectionPlan={method:string;disclaimer:string;actions:CollectionAction[]};
 type Props={apiUrl:string;accessToken:string;workspace:BusinessWorkspace;onBack:()=>void};
 const inr=(paise:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(paise/100);
 export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
  const [invoices,setInvoices]=useState<Invoice[]>([]);
  const [customers,setCustomers]=useState<Customer[]>([]);
  const [summary,setSummary]=useState<Summary|null>(null);
+ const [collectionPlan,setCollectionPlan]=useState<CollectionPlan|null>(null);
+ const [showCollections,setShowCollections]=useState(false);
  const [paymentInvoice,setPaymentInvoice]=useState<Invoice|null>(null);
  const [paymentAmount,setPaymentAmount]=useState('');
  const [paymentHistory,setPaymentHistory]=useState<Payment[]>([]);
@@ -29,16 +33,18 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
  async function load(signal?:AbortSignal){
   setLoading(true);setError('');
   try{
-   const [a,b,c]=await Promise.all([
+   const [a,b,c,d]=await Promise.all([
     fetch(base+'/invoices',{headers,signal}),
     fetch(base+'/customers',{headers,signal}),
-    fetch(base+'/invoices/summary',{headers,signal})
+    fetch(base+'/invoices/summary',{headers,signal}),
+    fetch(base+'/collections/plan',{headers,signal})
    ]);
-   if(!a.ok||!b.ok||!c.ok)throw new Error('Could not load invoices and customers.');
+   if(!a.ok||!b.ok||!c.ok||!d.ok)throw new Error('Could not load invoices and customers.');
    const inv:{invoices:Invoice[]}=await a.json();
    const cus:{customers:Customer[]}=await b.json();
    const sum:Summary=await c.json();
-   if(!signal?.aborted){setInvoices(inv.invoices);setCustomers(cus.customers);setSummary(sum);}
+   const plan:CollectionPlan=await d.json();
+   if(!signal?.aborted){setInvoices(inv.invoices);setCustomers(cus.customers);setSummary(sum);setCollectionPlan(plan);}
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:'Network error');}
   finally{if(!signal?.aborted)setLoading(false);}
  }
@@ -75,6 +81,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
    <div className="workspace-heading"><div><span className="eyebrow">INVOICE WORKSPACE</span><h1>Invoices</h1><p>Track issued invoices for this business.</p></div>{canWrite&&<button className="primary" disabled={!customers.length} onClick={()=>{setCustomerId(customers[0]?.id??'');setShowForm(true);}}><Plus size={17}/>New invoice</button>}</div>
    {error&&<div className="error" role="alert">{error}<button aria-label="Retry" onClick={()=>void load()}><RefreshCw size={16}/></button></div>}
    {summary&&<div className="invoice-metrics"><div><span>Total invoiced</span><strong>{inr(summary.total_invoiced_paise)}</strong></div><div><span>Received</span><strong>{inr(summary.paid_paise)}</strong></div><div><span>Outstanding</span><strong>{inr(summary.outstanding_paise)}</strong></div><div><span>Overdue</span><strong>{inr(summary.overdue_paise)}</strong></div></div>}
+   {collectionPlan&&collectionPlan.actions.length>0&&<section className="panel collections-panel"><div className="panel-heading"><div><h2>Collections priorities</h2><p>Suggested next steps for unpaid invoices · Human review required</p></div><button className="workspace-secondary" onClick={()=>setShowCollections(v=>!v)}>{showCollections?'Hide priorities':'View priorities'}</button></div>{showCollections&&<><div className="collection-list">{collectionPlan.actions.map(action=><div className="collection-row" key={action.invoice_id}><div><strong>{action.customer_name}</strong><p>{action.reason}</p></div><div className="collection-meta"><strong>{inr(action.outstanding_paise)}</strong><span>{action.action==='resolve_dispute'?'Resolve dispute':action.action==='review_followup'?'Review follow-up':action.action==='wait'?'Wait':'Monitor'}</span></div></div>)}</div><p className="collection-disclaimer">{collectionPlan.disclaimer}</p></>}</section>}
    {loading?<div className="workspace-empty">Loading invoices…</div>:invoices.length===0?<div className="workspace-empty">{customers.length?'No invoices yet. Create your first invoice.':'Add a customer before creating invoices.'}</div>:<section className="panel"><div className="table-wrap"><table><thead><tr><th>INVOICE</th><th>CUSTOMER</th><th>DUE DATE</th><th>AMOUNT</th><th>ACTIONS</th></tr></thead><tbody>{invoices.map(inv=><tr key={inv.id}><td>{inv.invoice_number}</td><td>{customerName(inv.customer_id)}</td><td>{inv.due_date}</td><td>{inr(inv.total_paise)}</td><td><button className="workspace-secondary" onClick={()=>void openPayment(inv)}>Payments</button></td></tr>)}</tbody></table></div></section>}
   </div>
   {paymentInvoice&&<div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setPaymentInvoice(null)}}><form className="dialog" onSubmit={submitPayment}><div className="dialog-head"><h2>Invoice payments</h2><button className="icon-button" type="button" aria-label="Close" onClick={()=>setPaymentInvoice(null)}><X size={20}/></button></div><p>{paymentInvoice.invoice_number} · {inr(paymentInvoice.total_paise)}</p><div className="payment-history">{paymentHistory.map(p=><div key={p.id}>{new Date(p.created_at).toLocaleDateString()} · {inr(p.amount_paise)}</div>)}{paymentHistory.length===0&&<p>No payments recorded.</p>}</div>{canWrite&&<><label>New payment (INR)<input required type="number" min="0.01" step="0.01" value={paymentAmount} onChange={e=>setPaymentAmount(e.target.value)}/></label><button disabled={busy} className="primary submit">{busy?'Saving…':'Record payment'}</button></>}</form></div>}
