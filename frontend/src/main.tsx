@@ -58,10 +58,11 @@ function Root() {
  const [workspace,setWorkspace] = useState<BusinessWorkspace|null>(null);
  // SaaS requires an access token from a trusted OIDC login integration.
  // Never accept arbitrary user identifiers or expose legacy demo routes as SaaS.
- const token = import.meta.env.VITE_SAAS_ACCESS_TOKEN;
+ // Token delivery must come from a real interactive OIDC session, never Vite build variables.
+ const token: string | null = null;
  const saasApi = import.meta.env.VITE_SAAS_API_URL;
  if (saasApi) {
-  if (!token) return <div className="workspace-screen"><div className="workspace-content"><h1>CashPilot secure login required</h1><p>Connect an OIDC login provider to enable business workspaces. No financial data is available without authentication.</p></div></div>;
+  if (token === null) return <div className="workspace-screen"><div className="workspace-content"><h1>CashPilot secure login required</h1><p>Connect an OIDC login provider to enable business workspaces. No financial data is available without authentication.</p></div></div>;
   return workspace
    ? <CustomerManagement apiUrl={saasApi} accessToken={token} workspace={workspace} onBack={()=>setWorkspace(null)}/>
    : <WorkspaceOnboarding apiUrl={saasApi} accessToken={token} onSelect={setWorkspace}/>;
