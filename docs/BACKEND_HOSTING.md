@@ -1,5 +1,9 @@
 # CashPilot SaaS Backend Hosting
 
+The existing Render staging service is live, and both `/health` and `/ready`
+return 200. See [the staging configuration](SUPABASE_STAGING.md) and
+[the browser/API/database verification report](DEPLOYMENT_VERIFICATION.md).
+
 ## Container
 
 Build from the `backend/` directory: `docker build -t cashpilot-saas .`.
@@ -8,9 +12,9 @@ The image runs `saas_main:app` on port 8080 as an unprivileged user; it does **n
 ## Deployment prerequisites
 
 1. Provision managed PostgreSQL with TLS, backups and restricted network access.
-2. Provision an OIDC provider issuing RS256 JWT access tokens for a dedicated CashPilot API audience; configure the issuer and JWKS URL.
+2. Configure a trusted provider issuing supported RS256 or ES256 access tokens. Deployed staging uses Supabase Auth, the `authenticated` audience and the project JWKS endpoint.
 3. Configure secrets using the host's environment manager (see `backend/.env.example` for **placeholders only**). Do not put backend credentials into Vercel `VITE_*` variables.
-4. From a controlled migration job using the same database credentials, run `alembic upgrade head` in the backend directory. Do not run migrations concurrently in every application container.
+4. From a controlled migration job using separate administrative database credentials, run `alembic upgrade head`. The restricted runtime login cannot run schema migrations. Do not run migrations concurrently in application containers.
 5. Start the container. `GET /health` is liveness; `GET /ready` verifies PostgreSQL connectivity. Restrict the backend's network ingress to HTTPS and trusted proxies.
 6. In Vercel preview, configure `VITE_SAAS_API_URL` to the HTTPS backend origin and the public OIDC settings. Register the exact frontend redirect URI with the identity provider.
 7. Validate authenticated onboarding, tenant isolation, partial payments, invoice disputes, idempotency and recovery with non-sensitive test data before accepting real customers.

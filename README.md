@@ -1,6 +1,13 @@
 # CashPilot
 
-Real-time financial intelligence workspace — **local demo MVP v0.2**.
+Financial intelligence for small businesses — **authenticated SaaS staging deployed**.
+
+[Open CashPilot staging](https://cashpilot-git-feature-saas-fo-bbd64b-shrashti-agarwals-projects.vercel.app)
+· [Deployment verification](docs/DEPLOYMENT_VERIFICATION.md)
+· [Backend readiness](https://cashpilot-saas-staging.onrender.com/ready)
+
+The preview retains Vercel access protection. New accounts require Supabase email
+confirmation. The free backend can take time to wake.
 
 ## Implemented
 - Responsive React + TypeScript dashboard with Recharts
@@ -42,8 +49,9 @@ refresh and in-memory sessions.
 
 Use [the authentication setup guide](docs/OIDC_SETUP.md) and
 [the staging status and checklist](docs/SUPABASE_STAGING.md). The Supabase schema
-is provisioned, but hosted backend readiness and real-user end-to-end login are
-still pending. The legacy demo below remains separate from the SaaS API.
+is provisioned, and hosted sign-in, customer/invoice creation, partial payments,
+token refresh and tenant isolation have passed real browser/API/database checks.
+The legacy demo remains separate from the SaaS API.
 
 Frontend checks: `cd frontend`, then `npm test` and `npm run build`.
 The authentication tests cover sign-in, email confirmation, refresh, expiry,
@@ -51,4 +59,4 @@ sign-out and clearing selected businesses when users change. They mock Supabase;
 they do not establish a successful hosted deployment.
 
 ## Legacy demo limitations
-The `main:app` demo is for **local development only** and has no authentication or user isolation. Do not enter real financial data or deploy that app publicly. The anomaly heuristic is not fraud detection, and the UI does not yet display anomaly events. Use the separate SaaS application for authenticated staging work; it still requires hosted readiness and end-to-end verification before real use. No trained ML model or Decision Lab is implemented yet.
+The `main:app` demo is for **local development only** and has no authentication or user isolation. Do not enter real financial data or deploy that app publicly. The anomaly heuristic is not fraud detection, and the UI does not yet display anomaly events. Use the separate SaaS application for authenticated staging work. Production hardening remains pending. No trained ML model or Decision Lab is implemented yet.

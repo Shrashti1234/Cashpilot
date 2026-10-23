@@ -41,8 +41,9 @@ CASH_PILOT_OIDC_JWKS_URL=https://gdjgmgfuzpqcedqgdozv.supabase.co/auth/v1/.well-
 On 23 October 2026 the public JWKS returned an ES256 P-256 signing key, which
 the backend supports. The JWT `role` must also be `authenticated`. This key
 inspection and unit tests do not prove a live user can complete the hosted flow.
-Render still needs `SAAS_DATABASE_URL` configured securely, the settings above,
-and an exact frontend CORS allowlist before deploying and checking `/ready`.
+Render now has `SAAS_DATABASE_URL` configured securely, the settings above,
+and the stable feature-branch origin in its CORS allowlist. The hosted `/ready`
+endpoint and real-user checks pass; see [the verification report](DEPLOYMENT_VERIFICATION.md).
 
 References: [password sign-in](https://supabase.com/docs/reference/javascript/auth-signinwithpassword),
 [auth state events](https://supabase.com/docs/reference/javascript/auth-onauthstatechange),
@@ -76,8 +77,8 @@ Do not use the unauthenticated legacy demo routes for real customer or financial
 
 ## Current limitations / launch blockers
 
-- A real provider, production HTTPS domain, allowed redirect URIs and API audience are **not yet configured**.
-- Configure the newly implemented `CASH_PILOT_CORS_ORIGINS` allowlist for the actual deployed frontend domain.
+- Supabase Auth and hosted staging are configured. A separate production release and its domain/redirect settings have not been configured.
+- CORS allows the stable feature-branch frontend origin; arbitrary per-build preview origins are not allowed.
 - The generic OIDC flow has no token refresh: expired sessions require signing in again. Supabase refreshes in-memory sessions as described above.
 - A fresh page reload drops the in-memory token, so users sign in again; this avoids persistent browser token storage.
 - Frontend integration and API tests do not replace a full provider-backed browser E2E security test.
