@@ -66,3 +66,28 @@ def test_unconfigured_provider_fails_closed(monkeypatch):
     auth_identity._provider_config.cache_clear()
     with pytest.raises(RuntimeError):
         auth_identity._provider_config()
+
+
+def test_supabase_es256_requires_authenticated_role(monkeypatch):
+    from cryptography.hazmat.primitives.asymmetric import ec
+    private = ec.generate_private_key(ec.SECP256R1())
+    public = private.public_key()
+    issuer = "https://example.supabase.co/auth/v1"
+    monkeypatch.setenv("CASH_PILOT_OIDC_ISSUER", issuer)
+    monkeypatch.setenv("CASH_PILOT_OIDC_AUDIENCE", "authenticated")
+    monkeypatch.setenv("CASH_PILOT_OIDC_JWKS_URL", issuer + "/.well-known/jwks.json")
+    auth_identity._provider_config.cache_clear()
+    now = datetime.now(timezone.utc)
+    payload = {"sub": "user-123", "iss": issuer, "aud": "authenticated",
+               "iat": now, "exp": now + timedelta(minutes=10), "role": "authenticated"}
+    class FakeJwks:
+        def get_signing_key_from_jwt(self, token):
+            return type("Key", (), {"key": public})()
+    with patch.object(auth_identity, "_jwks_client", return_value=FakeJwks()):
+        valid = jwt.encode(payload, private, algorithm="ES256", headers={"kid": "test-key"})
+        assert auth_identity.verify_bearer_token(valid) == "user-123"
+        payload["role"] = "anon"
+        invalid = jwt.encode(payload, private, algorithm="ES256", headers={"kid": "test-key"})
+        with pytest.raises(HTTPException) as err:
+            auth_identity.verify_bearer_token(invalid)
+        assert err.value.status_code == 401
