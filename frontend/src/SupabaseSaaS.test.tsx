@@ -8,7 +8,7 @@ import { SupabaseSaaS } from './SupabaseSaaS';
 const mocks = vi.hoisted(() => ({
   listener: null as null | ((event: string, session: Session | null) => void),
   signInWithPassword: vi.fn(), signUp: vi.fn(), signOut: vi.fn(),
-  unsubscribe: vi.fn(), stopAutoRefresh: vi.fn(), onAuthStateChange: vi.fn(),
+  unsubscribe: vi.fn(), dispose: vi.fn(), onAuthStateChange: vi.fn(),
 }));
 vi.mock('./supabaseAuth', () => ({
   createAuthClient: () => ({ auth: mocks }),
@@ -125,6 +125,6 @@ describe('Supabase workspace authentication', () => {
     expect(mocks.unsubscribe).toHaveBeenCalledTimes(1);
     view.unmount();
     expect(mocks.unsubscribe).toHaveBeenCalledTimes(2);
-    expect(mocks.stopAutoRefresh).toHaveBeenCalledTimes(2);
+    expect(mocks.dispose).toHaveBeenCalledTimes(2);
   });
 });

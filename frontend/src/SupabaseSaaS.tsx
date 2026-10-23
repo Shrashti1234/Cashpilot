@@ -25,20 +25,23 @@ export function SupabaseSaaS({ config }: { config: SupabaseConfig }) {
   const { apiUrl, supabaseUrl, publishableKey } = config;
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setSession(null);
     try {
       const authClient = createAuthClient({ apiUrl, supabaseUrl, publishableKey });
       setClient(authClient);
       const { data: { subscription } } = authClient.auth.onAuthStateChange((_event, nextSession) => {
+        if (!active) return;
         // The callback stays synchronous: SDK calls here can deadlock its auth lock.
         const valid = nextSession?.expires_at && nextSession.expires_at * 1000 > Date.now();
         setSession(valid ? nextSession : null);
         setLoading(false);
       });
       return () => {
+        active = false;
         subscription.unsubscribe();
-        authClient.auth.stopAutoRefresh();
+        void authClient.auth.dispose();
       };
     } catch {
       setClient(null);

@@ -50,5 +50,5 @@ The authentication tests cover sign-in, email confirmation, refresh, expiry,
 sign-out and clearing selected businesses when users change. They mock Supabase;
 they do not establish a successful hosted deployment.
 
-## Important limitations
-**Local development only.** No authentication, user isolation, production event bus, or production-ready security. Do not enter real financial data or deploy publicly. The anomaly heuristic is not fraud detection. The UI does not yet display anomaly events. PostgreSQL needs a compatible driver and configured URL. Next: auth + multi-tenant DB design, anomaly panel, forecast, CSV import, deployment and CI.
+## Legacy demo limitations
+The `main:app` demo is for **local development only** and has no authentication or user isolation. Do not enter real financial data or deploy that app publicly. The anomaly heuristic is not fraud detection, and the UI does not yet display anomaly events. Use the separate SaaS application for authenticated staging work; it still requires hosted readiness and end-to-end verification before real use. No trained ML model or Decision Lab is implemented yet.
