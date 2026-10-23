@@ -5,6 +5,7 @@ import { Activity, ArrowDownLeft, ArrowUpRight, Plus, RefreshCw, Wallet, X } fro
 import './style.css';
 import { lazy, Suspense } from 'react';
 const SecureSaaS = lazy(() => import('./SecureSaaS').then(module => ({ default: module.SecureSaaS })));
+const SupabaseSaaS = lazy(() => import('./SupabaseSaaS').then(module => ({ default: module.SupabaseSaaS })));
 import { languageNames, readLanguage, translate, type Language } from './i18n';
 
 type Tx = { id: string; title: string; amount: string; kind: 'income' | 'expense'; category: string; created_at: string };
@@ -57,6 +58,14 @@ function App() {
 function Root() {
  const apiUrl=import.meta.env.VITE_SAAS_API_URL;
  if(apiUrl){
+  const provider=import.meta.env.VITE_AUTH_PROVIDER || 'oidc';
+  if(provider==='supabase'){
+   const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
+   const publishableKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+   if(!supabaseUrl||!publishableKey)return <div className="workspace-screen"><div className="workspace-content"><h1>Sign-in is being configured</h1><p>Please return once your workspace is ready.</p></div></div>;
+   return <Suspense fallback={<div className="workspace-screen"><div className="workspace-content">Loading secure workspace…</div></div>}><SupabaseSaaS config={{apiUrl,supabaseUrl,publishableKey}}/></Suspense>;
+  }
+  if(provider!=='oidc')return <div className="workspace-screen"><div className="workspace-content"><h1>Sign-in is being configured</h1><p>Please return once your workspace is ready.</p></div></div>;
   const issuer=import.meta.env.VITE_OIDC_ISSUER;
   const clientId=import.meta.env.VITE_OIDC_CLIENT_ID;
   const scope=import.meta.env.VITE_OIDC_SCOPE || 'openid profile';
