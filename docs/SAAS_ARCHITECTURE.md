@@ -1,63 +1,71 @@
-# CashPilot SaaS architecture and implementation plan
+# CashPilot architecture
 
-Status: design proposal, not deployed. Current main branch is an unauthenticated local demo. **Never expose its API publicly or load real financial data.**
+Implemented on the feature branch and deployed to authenticated staging on 23 October 2026. This describes the running portfolio release. The larger market-gap roadmap is separate.
 
-## Product
-One multi-tenant application with `micro` and `b2b` business modes. Modes change navigation and features, not data isolation. Users can belong to multiple businesses.
+```mermaid
+flowchart TD
+    Browser["React / TypeScript on Vercel"]
+    Auth["Supabase Auth: email + ES256 JWT"]
+    API["FastAPI on Render"]
+    Tenant["JWT verification + membership / role checks"]
+    DB["Supabase PostgreSQL: tenant-scoped financial records"]
+    Audit["Append-only runtime audit events"]
+    ML["Pure-Python inference: versioned JSON models"]
+    Sim["Paired cash-path simulation: baseline / scenario"]
+    Train["Offline synthetic generator + scikit-learn"]
+    Eval["Purged chronological evaluation + model card"]
 
-## Stack
-React + TypeScript + Recharts frontend; FastAPI + SQLAlchemy + Alembic backend; PostgreSQL; managed authentication with server-side JWT verification and membership checks; private object storage; background job worker and durable queue. Keep the existing transaction demo intact until migration is tested.
+    Browser --> Auth
+    Auth -->|"short-lived access token"| Browser
+    Browser -->|"HTTPS + bearer token"| API
+    API --> Tenant
+    Tenant --> DB
+    Tenant --> Audit
+    Tenant --> ML
+    ML --> Sim
+    DB --> Sim
+    Sim -->|"cash ranges, explanations, review ideas"| Browser
+    Train --> Eval
+    Eval -->|"reviewed coefficient artifact"| ML
+```
 
-## Minimum data model
-- users: id (identity-provider subject), email, created_at
-- organizations: id, name, mode (micro/b2b), currency, timezone, created_at
-- memberships: organization_id, user_id, role (owner/admin/accountant/viewer), unique(organization_id,user_id)
-- customers: id, organization_id, name, email, phone, payment_terms_days
-- invoices: id, organization_id, customer_id, invoice_number, issue_date, due_date, status, currency, subtotal_minor, tax_minor, total_minor, created_at, unique(organization_id,invoice_number)
-- invoice_items: id, organization_id, invoice_id, description, quantity, unit_price_minor, tax_rate
-- payments: id, organization_id, invoice_id, amount_minor, paid_at, method, external_reference, idempotency_key
-- expenses: id, organization_id, amount_minor, category, due_date, paid_at
-- audit_events: id, organization_id, actor_id, action, resource_type, resource_id, timestamp
+## Trust boundaries
 
-All monetary values stored in minor units or fixed precision decimal, never float. Invoice balances derived from posted payments; do not duplicate mutable balances. Define statuses and transitions explicitly.
+- The browser receives only the public Auth key. Tokens refresh in memory; financial table privileges are revoked from browser roles.
+- FastAPI validates issuer, audience, ES256 signature and authenticated role. Every organization route checks membership; viewer writes are denied.
+- Application reads and writes filter by organization. Composite foreign keys prevent a customer or payment reference crossing organizations.
+- RLS restricts access to the trusted backend role. These policies do **not** independently partition tenants within that role: application authorization remains essential.
+- The runtime role has financial SELECT/INSERT/UPDATE and audit SELECT/INSERT only. No deletes, schema changes, superuser or global RLS bypass.
+- The IPv4 Supabase session pooler uses TLS certificate and hostname verification. Schema changes run administratively through Alembic, separately from the application login.
 
-## Tenant security invariants
-1. Every protected request authenticates the caller, resolves their active organization, and checks membership and role server-side.
-2. Every read/write filters by organization_id; never trust a client-provided tenant ID without verifying membership.
-3. Every child FK must be validated as belonging to the same organization, including customer_id and invoice_id.
-4. Add PostgreSQL row-level security as defense-in-depth; test application role cannot bypass it.
-5. WebSockets require authenticated, authorized tenant channels; remove current global broadcast before production.
-6. File uploads private, validated, size-limited, malware-scanned where feasible, and accessed by short-lived signed URLs.
-7. Encrypt in transit, protect secrets, rate-limit, audit privileged changes, enforce backups and restore tests.
-8. Never expose sensitive customer/invoice information in logs or model prompts without consent and minimization.
+## Persistent records
 
-## API v1 proposal
-- GET /api/v1/me and GET /api/v1/organizations
-- POST /api/v1/organizations; POST /api/v1/organizations/{id}/members/invitations
-- GET/POST /api/v1/customers
-- GET/POST /api/v1/invoices; GET/PATCH /api/v1/invoices/{id}
-- POST /api/v1/invoices/{id}/payments
-- GET/POST /api/v1/expenses
-- GET /api/v1/dashboard/summary
-- GET /api/v1/receivables/aging
-- GET /api/v1/cashflow/forecast?days=30
+Organizations and memberships establish owner/admin/accountant/viewer roles. Customers own invoices; posted partial payments determine outstanding balances. Disputes move from open to under review to resolved with a required note. Operating cash entries support actual, planned and void states.
 
-## Forecast MVP
-Start with transparent dated cash-in/cash-out schedules and scenario controls. Forecast expected invoice receipts using actual historical payment delays where available; label insufficient history and provide ranges. Do not call simple heuristics trained AI. Explain each forecast input.
+Audit events record actor, organization, action, resource and timestamp in the same transaction as changes. They exclude tokens, CSV bodies and request payloads. They are append-only for the runtime role, not immutable against a database administrator.
 
-## Delivery sequence
-1. Add automated CI and pinned dependency lock strategy. Introduce Alembic migrations and PostgreSQL integration tests.
-2. Integrate managed authentication and organization/membership authorization; add cross-tenant denial tests.
-3. Migrate transactions to tenant-scoped records; replace global WebSocket broadcasting.
-4. Implement customers, invoices, invoice items and partial payments with server-side validation.
-5. Add expenses, aging buckets and deterministic forecast.
-6. Add accessible micro/B2B layouts, onboarding, loading/empty/error states.
-7. Add invoice extraction with human review; opt-in reminders and durable delivery logs.
-8. Complete security review, operational monitoring, backup/restore drill, legal/GST review, and staged deployment.
+Money is stored in integer paise. CSV parsing uses Decimal and rejects fractional paise atomically. Imports append rows and do not infer duplicates.
 
-## Definition of done for first production milestone
-- Unauthenticated API calls rejected.
-- Business A cannot access or mutate Business B's records via any endpoint or realtime channel.
-- Owner/admin/accountant/viewer roles enforced and tested.
-- Migration preserves existing demo data safely in a separate local development environment.
-- CI tests pass; no real financial data or public deployment before security verification.
+## Inference and simulation
+
+Payment features use only settlements known before the scoring date. The served standardized logistic model includes sigmoid calibration and exact additive log-odds explanations. Overdue status is displayed as a fact rather than a new model prediction. Disputed receipts are excluded unless the user explicitly overrides timing.
+
+The ridge expense model uses lags, rolling means, weekday and month-end features. Workspaces require at least 56 calendar days and 28 expense dates; shorter histories use a disclosed trailing-mean fallback. No history produces no learned expense forecast and the UI says shortfall risk is not assessed.
+
+Three hundred conditional paths use empirical training payment delays and validation expense-residual blocks. Baseline, scenario and collection comparisons share random draws. Scheduled expenses replace the day's total learned expense; rescheduling conserves obligations and discloses amounts deferred beyond the horizon. Simulations never write payments or execute actions.
+
+The runtime uses JSON coefficients and the Python standard library, avoiding scikit-learn memory/dependency overhead in the free web service. Training packages are pinned separately. The artifact checksum and all candidate/baseline results are published.
+
+## Deployment and trade-offs
+
+Vercel branch Preview → Render free Docker service → Supabase PostgreSQL. Exact CORS origins are configured. Render auto-deploy is disabled; deploy after successful CI. Liveness and readiness endpoints are separate. The frontend handles loading, failure, retry and read-only roles.
+
+Synchronous inference is adequate for the bounded evaluation release: up to 200 outstanding invoices, 2,000 invoices overall, 10,000 cash entries, 90 forecast days and 20 simulations per identity/workspace/minute. The limit is process-local and resets on restart; multi-instance deployment requires shared limits.
+
+No public SaaS WebSocket, file attachment processor, queue worker or external AI service is deployed. The legacy transaction demo remains local and separate.
+
+## Operational limits
+
+The free backend can sleep. Real-world model validity, calibrated interval coverage, backup restore drills, load testing and incident response are not established by the portfolio tests. Supabase's latest advisor reports leaked-password protection disabled. Email confirmation is required; verification did not test actual confirmation-email delivery.
+
+See [hosted verification](DEPLOYMENT_VERIFICATION.md), [model card](MODEL_CARD.md), [Decision Lab guide](DECISION_LAB.md) and [future coverage](MARKET_GAP_COVERAGE.md).

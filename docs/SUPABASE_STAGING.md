@@ -1,6 +1,6 @@
 # CashPilot deployed staging
 
-Verified on 23 October 2026. This is the authenticated SaaS foundation; no trained ML model or Decision Lab is claimed.
+Verified on 23 October 2026. The authenticated SaaS application includes trained synthetic-data models, Decision Lab, cash imports, disputes and audit history. See the model card for validation limits.
 
 | Service | Verified state |
 | --- | --- |
@@ -8,15 +8,15 @@ Verified on 23 October 2026. This is the authenticated SaaS foundation; no train
 | FastAPI | https://cashpilot-saas-staging.onrender.com |
 | Liveness / readiness | Both /health and /ready return HTTP 200 |
 | Database | Supabase cashpilot-db, PostgreSQL 17, ACTIVE_HEALTHY |
-| Schema | Alembic 0003_backend_runtime_role |
+| Schema | Alembic 0005_audit_events |
 
-Backend deployment `dep-dbdehvqhv4oc73bnf4og` is live at executable commit `1eb16b08ae4099fc96b5c07e8e56b1a889db1524`. The matching Vercel preview is READY. Use the stable branch address above: it is the exact origin allowed by backend CORS. Existing Vercel preview protection is retained.
+Backend deployment `dep-dbdf45vavr4c739rtqc0` is live at executable commit `ba1173b716b8abcbd826467e555d464ed00173a6`. The matching Vercel preview is READY. Use the stable branch address above: it is the exact origin allowed by backend CORS. Existing Vercel preview protection is retained.
 
 ## Database access
 
-The backend uses the confirmed IPv4 session pooler `aws-0-ap-northeast-2.pooler.supabase.com:5432`. Its dedicated `cashpilot_backend` login has SELECT/INSERT/UPDATE access to the six SaaS tables and read access to alembic_version. It has no superuser, role-creation, database-creation, replication or global RLS-bypass privilege, and a connection limit of 10. It cannot delete business records or run schema migrations.
+The backend uses the confirmed IPv4 session pooler `aws-0-ap-northeast-2.pooler.supabase.com:5432`. Its dedicated `cashpilot_backend` login has SELECT/INSERT/UPDATE access to six foundation tables and the cash ledger, SELECT/INSERT access to audit events, and read access to alembic_version. It has no superuser, role-creation, database-creation, replication or global RLS-bypass privilege, and a connection limit of 10. It cannot delete business records or run schema migrations.
 
-RLS policies permit only this trusted backend role. FastAPI enforces JWT identity and organization membership. Database access remains revoked for anon and authenticated, and neither is a member of the backend role. The post-deployment security advisor has no findings.
+RLS policies permit only this trusted backend role. FastAPI enforces JWT identity and organization membership. Database access remains revoked for anon and authenticated, and neither is a member of the backend role. The latest security advisor reports one warning: leaked-password protection is disabled.
 
 The generated runtime credential is stored in Render's environment settings. The database owner's password was not needed or changed. Rotate the runtime credential administratively and update SAAS_DATABASE_URL; never commit credentials or put them in browser variables.
 
@@ -34,4 +34,4 @@ See [the deployment verification report](DEPLOYMENT_VERIFICATION.md). Temporary 
 - Backend auto-deploy is off; deploy deliberately after CI succeeds.
 - Run migrations administratively, separately from the restricted runtime login.
 - No main-branch merge, production promotion or paid infrastructure was enabled.
-- Production hardening, backup/restore drills, audit logging, rate limits and trained ML capabilities remain separate work.
+- Audit logging, single-instance simulation rate limits and trained ML capabilities are implemented. Backup/restore drills, distributed limits and real-business model validation remain future operational work.

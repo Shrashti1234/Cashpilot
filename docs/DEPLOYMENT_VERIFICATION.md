@@ -1,57 +1,62 @@
-# Deployment verification — 23 October 2026
+# Hosted release verification — 23 October 2026
 
-Story: an owner signs in through the deployed React app, creates a workspace,
-customer and invoice, records a partial payment, and sees the correct balance
-returned by FastAPI from Supabase. Another user cannot access those records.
-
-Executable commit: `1eb16b08ae4099fc96b5c07e8e56b1a889db1524`.
-Render deployment: `dep-dbdehvqhv4oc73bnf4og`, status `live`.
+Executable commit: `ba1173b716b8abcbd826467e555d464ed00173a6`.
+Render deployment: `dep-dbdf45vavr4c739rtqc0`, **live**.
+Vercel deployment: `dpl_6n9V4QLSaui5WjBkWvCkcrJjE4B7`, **READY**.
+Schema: `0005_audit_events`.
 Branch: `feature/saas-foundation`; PR remains draft.
 
-## Flow results
+[Open hosted application](https://cashpilot-git-feature-saas-fo-bbd64b-shrashti-agarwals-projects.vercel.app) · [Machine-readable results](hosted-verification.json)
 
-| Boundary | Evidence |
+## Verified story
+
+An owner signed in through the deployed React app using genuine Supabase Auth tokens, created a business, imported cash history, corrected a cash entry, created a customer and invoice, recorded a partial payment, opened/reviewed/resolved a dispute, and ran the trained models through Decision Lab.
+
+| Boundary | Observed result |
 | --- | --- |
-| Browser renders | Desktop sign-in and 390px mobile signup layouts inspected; no horizontal overflow |
-| Authentication | Two temporary confirmed identities signed in through real Supabase Auth; HTTP 200 and genuine ES256 tokens |
-| Browser → API | Workspace, customer, invoice and partial payment created through the hosted UI |
-| API → database | Restricted backend login connected through the pooler with certificate and hostname verification |
-| Database → response | Invoice 250000 paise, payment 50000 paise, exactly one payment record |
-| Response → browser | ₹2,500 invoiced, ₹500 received, ₹2,000 outstanding and overdue |
-| Collections | Overdue invoice received a rule-based follow-up suggestion and human-review notice |
-| Token refresh | Supabase refresh HTTP 200; refreshed token accepted by hosted API, HTTP 200 |
-| Sign-out / switch user | Protected UI removed; second user's workspace list was empty |
+| Browser → Supabase Auth | Genuine password sign-in succeeded; confirmation settings remained enabled |
+| Browser → API → PostgreSQL | Workspace, customer, invoice, payment, 100 CSV entries and entry correction persisted |
+| Invoice arithmetic | ₹45,000 invoice minus ₹5,000 payment = ₹40,000 outstanding in model input |
+| No expense history | UI displayed **Not assessed**, not a manufactured risk percentage |
+| Imported operating history | 100 calendar days; hosted inference reported trained_ridge_expenses |
+| Model → forecast → browser | 7/30/90 requests returned HTTP 200 with exactly 7/30/90 daily points |
+| Scenario comparison | Synthetic example: assumed collection improved median path-minimum by ₹29,135.73; same random draws |
+| Dispute workflow | Open → under review → resolved; required note persisted; open dispute flagged and excluded from baseline receipts |
+| Audit history | Workspace, customer, invoice, payment, import, correction and all dispute transitions recorded |
+| Mobile | 390px Scenarios and Model evidence layouts had no horizontal page overflow |
+| Browser runtime | No JavaScript page errors observed |
 
-## Safety and operational checks
+The synthetic scenario is an assumption-driven illustration, not an achieved business outcome. The demo does not save its records.
 
-| Check | Result |
+## Security and operations
+
+| Check | Observed result |
 | --- | --- |
-| `/health` and `/ready` | Both HTTP 200 |
-| Missing bearer token | HTTP 401 |
-| Other tenant's customers, invoices, summary, collections and payment history | All five HTTP 403 |
-| Untrusted origin preflight | HTTP 400 |
-| Duplicate payment request | Same payment ID; payment count unchanged |
-| Overpayment | HTTP 422 |
-| Browser database privileges | No SELECT privilege or membership of backend role |
-| Database security advisor | No findings |
-| Runtime errors after successful rollout | None in the verification interval |
+| /health and /ready | Both HTTP 200 |
+| Missing bearer token | HTTP 401 for cash entries, model evidence, disputes and audit |
+| Other tenant | HTTP 403 for all four routes |
+| Unknown scenario reference | HTTP 422 |
+| Runtime audit privileges | UPDATE and DELETE denied |
+| Browser cash-ledger privileges | SELECT denied for anon and authenticated |
+| Render error logs | No error-level events during the post-rollout verification interval |
+| Supabase security advisor | One warning: leaked-password protection disabled |
 
-All three GitHub workflows passed for the executable commit. Local validation
-passed 46 backend tests, 17 frontend auth tests, TypeScript and the production
-frontend build. The frontend dependency audit reported zero vulnerabilities.
+Earlier hosted foundation checks also verified refresh, sign-out, other-tenant invoice/customer access, duplicate-payment idempotency, overpayment rejection, and untrusted-origin rejection. Those results predate the ML release; the new release's checks are recorded separately above.
 
-## Test data and limits
+All three GitHub workflows passed for the executable commit: backend tests, frontend build and SaaS container build. Local validation passed **62 backend tests and 22 frontend tests**, TypeScript and the production frontend build. Training ran twice and produced the same model artifact hash:
 
-Two temporary identities were provisioned administratively with reserved,
-non-deliverable email addresses and generated passwords. No test emails were
-sent. They exercised genuine password sign-in and refresh, rather than signup
-confirmation email delivery. All temporary identities, auth sessions and business
-records were deleted afterward: zero test users and zero test organizations remained.
+`46c3fca40a7f48f04e14b9d22b74f0f640363323ec0009df485a68244ef4008c`.
 
-The screenshot shows temporary verification data before cleanup:
+## Test data
 
-![Hosted invoice and partial-payment workflow](screenshots/hosted-invoices.png)
+Two reserved example.invalid identities were provisioned administratively with random passwords. They exercised genuine Auth sign-in; no test emails were sent. All verification business records, sessions and identities were removed afterward. Screenshots show temporary records before cleanup.
 
-These checks establish a working staging deployment of the current SaaS
-foundation. Production readiness, trained models, email delivery reliability and
-the planned Decision Lab are not established by these checks.
+![Hosted Decision Lab comparison](screenshots/decision-lab-desktop.png)
+
+![Hosted model evidence](screenshots/model-evidence.png)
+
+![Dispute resolution and audit history](screenshots/disputes-audit.png)
+
+## What this establishes
+
+The complete portfolio workflow, including trained-model inference, is deployed and verified in staging. It does not establish real-business model accuracy, confirmation-email delivery, production load capacity, backup restorability or regulatory compliance. See the [model card](MODEL_CARD.md) and [architecture](SAAS_ARCHITECTURE.md).

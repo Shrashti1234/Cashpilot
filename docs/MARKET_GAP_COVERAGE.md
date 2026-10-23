@@ -1,6 +1,8 @@
 # CashPilot 2.0 — Comprehensive Market-Gap Coverage Register
 
-**Status:** Product requirements and acceptance criteria. This is not a claim that features have shipped.
+**Status:** Long-term product requirements and acceptance criteria, beyond the current ML portfolio release. This is not a claim that every listed feature has shipped.
+
+The deployed release now includes authenticated workspaces, customers/invoices/partial payments, operating-cash CSV imports and corrections, dispute lifecycle, audit history, trained synthetic-data models and 7/30/90-day Decision Lab scenarios. See [current verification](DEPLOYMENT_VERIFICATION.md) and [model limitations](MODEL_CARD.md). The matrix below records the larger market-gap scope, which is only partially covered.
 
 ## Definition of done
 Every feature requires: functional UI, authenticated and organization-scoped backend, persistent data model and migrations, input validation, permission checks, automated tests, accessibility, observability, and documentation. Integrations require sandbox verification and credential management. Regulatory functionality requires review against current official requirements before launch.
