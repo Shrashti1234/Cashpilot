@@ -33,12 +33,14 @@ def verify_bearer_token(token: str) -> str:
     try:
         key = _jwks_client(jwks_url).get_signing_key_from_jwt(token)
         claims = jwt.decode(
-            token, key.key, algorithms=["RS256"], audience=audience, issuer=issuer,
+            token, key.key, algorithms=["RS256", "ES256"], audience=audience, issuer=issuer,
             options={"require": ["exp", "iat", "iss", "aud", "sub"]},
             leeway=30,
         )
     except (InvalidTokenError, PyJWKClientError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=401, detail="Invalid authentication token") from exc
+    if issuer.endswith(".supabase.co/auth/v1") and claims.get("role") != "authenticated":
+        raise HTTPException(status_code=401, detail="Authenticated user token required")
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status_code=401, detail="Invalid authentication subject")
