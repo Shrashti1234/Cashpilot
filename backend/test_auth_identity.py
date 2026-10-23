@@ -68,6 +68,25 @@ def test_unconfigured_provider_fails_closed(monkeypatch):
         auth_identity._provider_config()
 
 
+@pytest.mark.parametrize("path", [
+    "/api/v1/organizations",
+    "/api/v1/organizations/a/invoices",
+])
+def test_configured_provider_still_requires_bearer_token(keys, path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from organizations_api import router as organizations_router
+    from saas_api import router as saas_router
+
+    app = FastAPI()
+    app.include_router(organizations_router)
+    app.include_router(saas_router)
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Bearer token required"
+
+
 def test_supabase_es256_requires_authenticated_role(monkeypatch):
     from cryptography.hazmat.primitives.asymmetric import ec
     private = ec.generate_private_key(ec.SECP256R1())
