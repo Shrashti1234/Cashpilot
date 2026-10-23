@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from auth_identity import get_verified_identity
 from saas_api import get_saas_session
 from saas_domain import Membership, Organization
+from audit import record_event
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 Identity = Annotated[str, Depends(get_verified_identity)]
@@ -36,6 +37,7 @@ def create_organization(payload: OrganizationCreate, identity: Identity, db: Db)
         db.add(org)
         db.flush()
         db.add(Membership(organization_id=org.id, user_id=identity, role="owner"))
+        record_event(db, org.id, identity, 'workspace.created', org.id)
         db.commit()
         db.refresh(org)
     except Exception:

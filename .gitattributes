@@ -1,0 +1,2 @@
+backend/models/*.json text eol=lf
+backend/certs/*.crt text eol=lf

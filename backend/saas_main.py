@@ -17,6 +17,8 @@ from sqlalchemy.orm import sessionmaker
 from auth_identity import _provider_config
 from organizations_api import router as organizations_router
 from saas_api import get_saas_session, router as invoices_router
+from intelligence_api import router as intelligence_router
+from disputes_api import router as disputes_router
 
 
 @asynccontextmanager
@@ -66,6 +68,8 @@ app.add_middleware(
 )
 app.include_router(organizations_router)
 app.include_router(invoices_router)
+app.include_router(intelligence_router)
+app.include_router(disputes_router)
 
 
 def session_dependency():

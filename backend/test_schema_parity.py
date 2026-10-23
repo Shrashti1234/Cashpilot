@@ -7,6 +7,8 @@ from sqlalchemy import create_engine, inspect
 
 from saas_domain import SaaSBase
 import disputes  # noqa: F401
+import cash_ledger  # noqa: F401
+import audit  # noqa: F401
 
 
 def test_migration_matches_orm_columns(tmp_path, monkeypatch):

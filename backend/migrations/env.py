@@ -7,6 +7,8 @@ from sqlalchemy import engine_from_config, pool
 
 from saas_domain import SaaSBase
 import disputes  # noqa: F401; registers dispute model
+import cash_ledger  # noqa: F401
+import audit  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

@@ -18,6 +18,7 @@ from saas_domain import (
 from sqlalchemy import select
 from collections_intelligence import Receivable, collections_plan
 from disputes import InvoiceDispute
+from audit import record_event
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
 
@@ -87,6 +88,8 @@ def add_customer(organization_id: str, payload: CustomerCreate, identity: Identi
             raise HTTPException(status_code=422, detail="Customer name is required")
         customer = Customer(organization_id=organization_id, name=payload.name.strip())
         db.add(customer)
+        db.flush()
+        record_event(db, organization_id, identity, 'customer.created', customer.id)
         db.commit()
         db.refresh(customer)
         return {"id": customer.id, "name": customer.name}
@@ -102,6 +105,7 @@ def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity
             customer_id=payload.customer_id, invoice_number=payload.invoice_number,
             due_date=payload.due_date, total_paise=payload.total_paise,
         )
+        record_event(db, organization_id, identity, 'invoice.created', invoice.id)
         db.commit()
         db.refresh(invoice)
         return invoice_out(invoice)
@@ -205,6 +209,7 @@ def add_payment(organization_id: str, invoice_id: str, payload: PaymentCreate,
             invoice_id=invoice_id, amount_paise=payload.amount_paise,
             idempotency_key=payload.idempotency_key,
         )
+        record_event(db, organization_id, identity, 'payment.recorded_or_replayed', payment.id)
         db.commit()
         return {"id": payment.id, "invoice_id": payment.invoice_id,
                 "amount_paise": payment.amount_paise}

@@ -1,0 +1,238 @@
+{
+  "provenance": "synthetic_only",
+  "seed": 20261023,
+  "python": "3.14.2",
+  "sklearn": "1.9.1",
+  "numpy": "2.5.4",
+  "artifact_sha256": "46c3fca40a7f48f04e14b9d22b74f0f640363323ec0009df485a68244ef4008c",
+  "payment": {
+    "counts": {
+      "train": 10615,
+      "validation_calibration": 2889,
+      "test": 3999
+    },
+    "train_labels_before": "2024-10-01",
+    "validation_labels_before": "2025-04-01",
+    "test_scores_from": "2025-04-01",
+    "metrics": {
+      "base_rate": {
+        "roc_auc": 0.5,
+        "pr_auc": 0.3893473368342086,
+        "brier": 0.23778474357365398,
+        "log_loss": 0.668515925451163,
+        "late_prevalence": 0.3893473368342086,
+        "calibration_bins": [
+          {
+            "predicted": 0.3839849269901084,
+            "observed": 0.3893473368342086,
+            "count": 3999
+          }
+        ]
+      },
+      "logistic_raw": {
+        "roc_auc": 0.8083664326438893,
+        "pr_auc": 0.7053696295092764,
+        "brier": 0.1744254433951544,
+        "log_loss": 0.5251705549586618,
+        "late_prevalence": 0.3893473368342086,
+        "calibration_bins": [
+          {
+            "predicted": 0.07053350572055507,
+            "observed": 0.0859277708592777,
+            "count": 803
+          },
+          {
+            "predicted": 0.14291890563782525,
+            "observed": 0.19047619047619047,
+            "count": 966
+          },
+          {
+            "predicted": 0.24819784290700614,
+            "observed": 0.2924281984334204,
+            "count": 383
+          },
+          {
+            "predicted": 0.34943044795258416,
+            "observed": 0.45980707395498394,
+            "count": 311
+          },
+          {
+            "predicted": 0.4495432785359152,
+            "observed": 0.5547703180212014,
+            "count": 283
+          },
+          {
+            "predicted": 0.5496958950757213,
+            "observed": 0.629757785467128,
+            "count": 289
+          },
+          {
+            "predicted": 0.6521434067259088,
+            "observed": 0.675,
+            "count": 320
+          },
+          {
+            "predicted": 0.7496053557148322,
+            "observed": 0.7361477572559367,
+            "count": 379
+          },
+          {
+            "predicted": 0.8435041010706084,
+            "observed": 0.8130081300813008,
+            "count": 246
+          },
+          {
+            "predicted": 0.9162340626668639,
+            "observed": 0.7894736842105263,
+            "count": 19
+          }
+        ]
+      },
+      "logistic_calibrated": {
+        "roc_auc": 0.8083664326438893,
+        "pr_auc": 0.7053696295092764,
+        "brier": 0.17452407333245062,
+        "log_loss": 0.5244347581337735,
+        "late_prevalence": 0.3893473368342086,
+        "calibration_bins": [
+          {
+            "predicted": 0.07610795197888619,
+            "observed": 0.08424908424908426,
+            "count": 546
+          },
+          {
+            "predicted": 0.14359865759640575,
+            "observed": 0.16276978417266186,
+            "count": 1112
+          },
+          {
+            "predicted": 0.24469377385086585,
+            "observed": 0.26666666666666666,
+            "count": 465
+          },
+          {
+            "predicted": 0.34902174739812686,
+            "observed": 0.4619718309859155,
+            "count": 355
+          },
+          {
+            "predicted": 0.44993173454274493,
+            "observed": 0.5646687697160884,
+            "count": 317
+          },
+          {
+            "predicted": 0.5485837336244774,
+            "observed": 0.6542056074766355,
+            "count": 321
+          },
+          {
+            "predicted": 0.6517097175430866,
+            "observed": 0.6894736842105263,
+            "count": 380
+          },
+          {
+            "predicted": 0.7477298165899839,
+            "observed": 0.7450424929178471,
+            "count": 353
+          },
+          {
+            "predicted": 0.8362249615912348,
+            "observed": 0.8551724137931035,
+            "count": 145
+          },
+          {
+            "predicted": 0.9087648714060187,
+            "observed": 0.8,
+            "count": 5
+          }
+        ]
+      },
+      "gradient_boosting_comparator": {
+        "roc_auc": 0.8044191064422278,
+        "pr_auc": 0.6971871789969121,
+        "brier": 0.22223902471968326,
+        "log_loss": 0.6507474119334726,
+        "late_prevalence": 0.3893473368342086,
+        "calibration_bins": [
+          {
+            "predicted": 0.05736475479193778,
+            "observed": 0.1420704845814978,
+            "count": 1816
+          },
+          {
+            "predicted": 0.14533396104665236,
+            "observed": 0.4051724137931034,
+            "count": 696
+          },
+          {
+            "predicted": 0.24826954565845022,
+            "observed": 0.570694087403599,
+            "count": 389
+          },
+          {
+            "predicted": 0.34166510998829713,
+            "observed": 0.6634146341463415,
+            "count": 410
+          },
+          {
+            "predicted": 0.45067046669284017,
+            "observed": 0.7354166666666667,
+            "count": 480
+          },
+          {
+            "predicted": 0.5423159174775426,
+            "observed": 0.8161764705882353,
+            "count": 136
+          },
+          {
+            "predicted": 0.6382274451355111,
+            "observed": 0.8194444444444444,
+            "count": 72
+          }
+        ]
+      }
+    },
+    "selection": "C selected by validation Brier score; calibrated logistic deployed for exact additive explanations. Boosting is a reported comparator, not silently claimed as served."
+  },
+  "cashflow": {
+    "training_rows": 19904,
+    "validation_days": [
+      650,
+      799
+    ],
+    "test_origins": [
+      800,
+      910,
+      1010
+    ],
+    "horizon_metrics": {
+      "7": {
+        "ridge_total_mae_rupees": 2546.8689915029104,
+        "seasonal_naive_total_mae_rupees": 3976.542292959029,
+        "ridge_wape": 0.04368509721961528,
+        "seasonal_naive_wape": 0.06820752745641513,
+        "origins": 96
+      },
+      "30": {
+        "ridge_total_mae_rupees": 8934.431392110513,
+        "seasonal_naive_total_mae_rupees": 25276.81421609446,
+        "ridge_wape": 0.03359657663253354,
+        "seasonal_naive_wape": 0.0950496331067273,
+        "origins": 96
+      },
+      "90": {
+        "ridge_total_mae_rupees": 27761.22554545895,
+        "seasonal_naive_total_mae_rupees": 82562.76826911677,
+        "ridge_wape": 0.03500332991237677,
+        "seasonal_naive_wape": 0.1041010171352371,
+        "origins": 96
+      }
+    },
+    "target": "daily non-invoice income or operating expense, normalized by trailing 28-day mean"
+  },
+  "limitations": [
+    "No validation on real Indian MSME data; scores are experimental, not credit scores.",
+    "Synthetic regularity may inflate results; no causal interpretation.",
+    "Monte Carlo bands reflect residual/payment assumptions, not calibrated real-world coverage."
+  ]
+}
