@@ -21,6 +21,7 @@ from collections_intelligence import Receivable, collections_plan
 from disputes import InvoiceDispute
 from audit import record_event
 from operations import BusinessProfile
+from promises import unfulfilled_promises
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
 
@@ -142,6 +143,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
                 Customer.organization_id == organization_id))
         }
         positions = invoice_positions(db, organization_id, invoices_for_org)
+        promises = unfulfilled_promises(db, organization_id)
         disputed_ids = set(db.scalars(select(InvoiceDispute.invoice_id).where(
             InvoiceDispute.organization_id == organization_id,
             InvoiceDispute.invoice_id.in_(ids),
@@ -151,7 +153,9 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
                        customer_name=customers_by_id.get(invoice.customer_id, "Customer"),
                        due_date=invoice.due_date,
                        outstanding_paise=positions[invoice.id]['outstanding_paise'],
-                       disputed=invoice.id in disputed_ids)
+                       disputed=invoice.id in disputed_ids,
+                       promise_date=promises.get(invoice.id,{}).get('date'),
+                       promise_amount_paise=promises.get(invoice.id,{}).get('amount_paise'))
             for invoice in invoices_for_org
         ]
         return collections_plan(receivables, as_of=date.today())

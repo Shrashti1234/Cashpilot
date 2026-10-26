@@ -15,6 +15,8 @@ class Receivable:
     outstanding_paise: int
     disputed: bool = False
     last_contacted: date | None = None
+    promise_date: date | None = None
+    promise_amount_paise: int | None = None
 
     def __post_init__(self):
         if self.outstanding_paise < 0:
@@ -41,8 +43,14 @@ def collections_plan(
             action, reason, score = ("resolve_dispute", "Invoice marked disputed; resolve the issue before requesting payment", 100)
         elif invoice.last_contacted and 0 <= (as_of - invoice.last_contacted).days < contact_cooldown_days:
             action, reason, score = ("wait", "Customer contacted recently; avoid repeated reminders", 0)
+        elif invoice.promise_date and invoice.promise_date >= as_of:
+            action='review_promise'
+            amount=invoice.promise_amount_paise or 0
+            reason=f'Recorded payment promise of INR {amount//100:,}.{amount%100:02d} for {invoice.promise_date}. Review the commitment; it is not a receipt.'
+            score=min(overdue_days,90)+min(invoice.outstanding_paise//100000,40)
         elif overdue_days > 0:
             action, reason = ("review_followup", f"Payment is {overdue_days} days overdue")
+            if invoice.promise_date:reason+=f'; the recorded promise date {invoice.promise_date} has passed'
             score = min(overdue_days, 90) + min(invoice.outstanding_paise // 100000, 40)
         else:
             action, reason, score = ("monitor", "Invoice is not yet overdue", 0)

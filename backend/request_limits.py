@@ -10,7 +10,7 @@ _lock=Lock()
 _requests={}
 
 
-def allow_action(identity,scope,label='requests'):
+def allow_action(identity,scope,label='requests',limit=20):
     now=monotonic()
     with _lock:
         if len(_requests)>10000:
@@ -18,7 +18,7 @@ def allow_action(identity,scope,label='requests'):
             if len(_requests)>10000: raise HTTPException(503,'Request capacity reached. Retry shortly.')
         queue=_requests.setdefault((identity,scope),deque())
         while queue and queue[0]<now-60: queue.popleft()
-        if len(queue)>=20: raise HTTPException(429,f'At most 20 {label} per minute. Please wait.',headers={'Retry-After':'60'})
+        if len(queue)>=limit: raise HTTPException(429,f'At most {limit} {label} per minute. Please wait.',headers={'Retry-After':'60'})
         queue.append(now)
 
 

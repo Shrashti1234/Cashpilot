@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -24,6 +25,8 @@ from finance_api import router as finance_router
 from recurring_api import router as recurring_router
 from teams_api import router as teams_router
 from dashboard_api import router as dashboard_router
+from buyer_api import router as buyer_router
+from api_security import safe_validation_error
 
 
 @asynccontextmanager
@@ -32,7 +35,7 @@ async def lifespan(app: FastAPI):
     database_url = os.getenv("SAAS_DATABASE_URL", "")
     if not database_url.startswith("postgresql+psycopg://"):
         raise RuntimeError("SAAS_DATABASE_URL must use PostgreSQL psycopg")
-    engine = create_engine(database_url, pool_pre_ping=True)
+    engine = create_engine(database_url, pool_pre_ping=True, hide_parameters=True)
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
@@ -66,6 +69,16 @@ def allowed_origins() -> list[str]:
 
 
 app = FastAPI(title="CashPilot SaaS API", version="1.0.0-alpha", lifespan=lifespan)
+app.add_exception_handler(RequestValidationError,safe_validation_error)
+
+
+@app.middleware('http')
+async def private_api_headers(request,call_next):
+    response=await call_next(request)
+    if request.url.path.startswith('/api/'):
+        response.headers['Cache-Control']='no-store'
+        response.headers['X-Content-Type-Options']='nosniff'
+    return response
 app.add_middleware(
     CORSMiddleware, allow_origins=allowed_origins(),
     allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"],
@@ -80,6 +93,7 @@ app.include_router(finance_router)
 app.include_router(recurring_router)
 app.include_router(teams_router)
 app.include_router(dashboard_router)
+app.include_router(buyer_router)
 
 
 def session_dependency():

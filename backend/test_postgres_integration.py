@@ -14,7 +14,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
-import audit,disputes,cash_ledger,recurring,teams  # register all dependent tables
+import audit,disputes,cash_ledger,recurring,teams,buyer_access,promises  # register all dependent tables
 from finance_api import RefundInput,add_refund
 from intelligence_api import today
 from operations import BusinessProfile,Product,StockMovement,TradeDocument,post_stock,stock_balance
@@ -141,11 +141,11 @@ def test_postgres_runtime_and_browser_database_privileges_remain_restricted(pg):
     with pg['admin'].connect() as connection:
         role=connection.execute(text("SELECT rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls,rolinherit,rolconnlimit FROM pg_roles WHERE rolname='cashpilot_backend'")).one()
         assert not any(role[:6]) and role.rolconnlimit==10
-        rows=connection.execute(text("SELECT relname,relrowsecurity FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r' AND relname LIKE 'saas_%'"))
+        rows=list(connection.execute(text("SELECT relname,relrowsecurity FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r' AND relname LIKE 'saas_%'")))
         assert all(row.relrowsecurity for row in rows)
         assert not connection.execute(text("SELECT pg_has_role('anon','cashpilot_backend','MEMBER') OR pg_has_role('authenticated','cashpilot_backend','MEMBER')")).scalar()
-        for name in SaaSBase.metadata.tables:
-            assert not connection.execute(text("SELECT has_table_privilege('anon',:name,'SELECT') OR has_table_privilege('authenticated',:name,'SELECT')"),{'name':name}).scalar()
+        for row in rows:
+            assert not connection.execute(text("SELECT has_table_privilege('anon',:name,'SELECT') OR has_table_privilege('authenticated',:name,'SELECT')"),{'name':row.relname}).scalar()
     for statement in ["UPDATE saas_audit_events SET action='tampered' WHERE 1=0",'DELETE FROM saas_invoices WHERE 1=0','DELETE FROM saas_stock_movements WHERE 1=0','UPDATE saas_invoice_refunds SET amount_paise=1 WHERE 1=0']:
         with pytest.raises(ProgrammingError) as rejected:
             with pg['runtime'].begin() as connection:connection.execute(text(statement))

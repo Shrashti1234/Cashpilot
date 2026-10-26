@@ -42,7 +42,8 @@ Placeholders and simulated successes do not satisfy this rule.
    entrypoint are also implemented locally. An installed scheduler, statutory GST
    note generation and actual payment-provider refunds remain pending.
 3. Collaboration and approvals: [local team administration](TEAM_ACCESS.md) now
-   supports a second approver and access revocation. Buyer portal, evidence,
+   supports a second approver and access revocation. [Private buyer invoice access
+   and payment commitments](BUYER_ACCESS.md) are implemented locally. Evidence,
    branches and broader approval rules remain pending.
 4. Bank reconciliation, payment and reminder integrations with actual sandboxes.
 5. [Local overview, aging and concentration](BUSINESS_OVERVIEW.md) are implemented,
@@ -52,8 +53,8 @@ Placeholders and simulated successes do not satisfy this rule.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 
-Current local checkpoint: 86 backend tests (including seven PostgreSQL checks),
-42 frontend tests and frontend build pass. The new CI job is prepared but unpushed.
+Current local checkpoint: 90 backend tests (including seven PostgreSQL checks),
+46 frontend tests and frontend build pass. The new CI job is prepared but unpushed.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the
