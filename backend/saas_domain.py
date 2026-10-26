@@ -156,6 +156,12 @@ def require_member(db: Session, user_id: str, organization_id: str, *, write: bo
     return membership
 
 
+def lock_organization(db: Session, organization_id: str):
+    # PostgreSQL NO KEY UPDATE serializes business-control mutations without
+    # blocking KEY SHARE locks taken by unrelated audit/child-row FK inserts.
+    return db.scalar(select(Organization).where(Organization.id == organization_id).with_for_update(key_share=True))
+
+
 def list_invoices(db: Session, *, user_id: str, organization_id: str) -> list[Invoice]:
     require_member(db, user_id, organization_id)
     return list(db.scalars(select(Invoice).where(Invoice.organization_id == organization_id)))

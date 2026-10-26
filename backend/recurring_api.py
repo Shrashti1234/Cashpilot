@@ -13,6 +13,7 @@ from operations import TradeDocument
 from operations_api import authorize,mutation
 from recurring import RecurringRule,generate_due
 from saas_api import get_saas_session
+from saas_domain import lock_organization
 
 router=APIRouter(prefix='/api/v1/organizations/{organization_id}/operations/recurring',tags=['recurring-invoice-drafts'])
 Identity=Annotated[str,Depends(get_verified_identity)]
@@ -82,8 +83,7 @@ def toggle_rule(organization_id:str,rule_id:str,payload:ActiveInput,identity:Ide
     authorize(db,identity,organization_id,admin=True)
     with mutation(db):
         # Same organization lock order as generation avoids policy/run races.
-        from saas_domain import Organization
-        db.scalar(select(Organization).where(Organization.id==organization_id).with_for_update())
+        lock_organization(db,organization_id)
         r=db.scalar(select(RecurringRule).where(RecurringRule.organization_id==organization_id,RecurringRule.id==rule_id).with_for_update())
         if r is None:raise HTTPException(404,'Recurring series not found')
         if payload.active and ((r.end_date and r.next_date>r.end_date) or r.sequence>9999):raise ValueError('This series is complete; create a new one')

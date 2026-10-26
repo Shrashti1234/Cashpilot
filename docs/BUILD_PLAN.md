@@ -32,8 +32,9 @@ Placeholders and simulated successes do not satisfy this rule.
    catalogue/create/edit/archive, stock adjustments and history, partial purchase
    receipts, estimates/copy-to-invoice, tax components, immutable document snapshots,
    independent approval policy, atomic invoice/stock posting, print/JSON/CSV export.
-   See [operations verification](OPERATIONS.md). PostgreSQL concurrency verification
-   and the remaining financial lifecycle still need completion.
+   See [operations verification](OPERATIONS.md). [Real local PostgreSQL concurrency
+   and database restore checks](POSTGRES_VERIFICATION.md) now pass. The remaining
+   regulated/provider financial workflows still need completion.
 2. Complete financial lifecycle: **internal credit/debit memos, records of completed
    external refunds, customer statements and downstream adjusted balances are
    implemented locally**. See [ledger verification](FINANCIAL_LEDGER.md).
@@ -50,6 +51,10 @@ Placeholders and simulated successes do not satisfy this rule.
 6. India-specific workbench, evidence exports and integration checks.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
+
+Current local checkpoint: 86 backend tests (including seven PostgreSQL checks),
+42 frontend tests and frontend build pass. The new CI job is prepared but unpushed.
+Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the
 presence of a button or an API route. Model validity on real business data and

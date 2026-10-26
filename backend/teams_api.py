@@ -14,7 +14,7 @@ from operations_api import authorize,mutation
 from organizations_api import organization_out
 from request_limits import allow_action
 from saas_api import get_saas_session
-from saas_domain import Membership,Organization
+from saas_domain import Membership,Organization,lock_organization
 from teams import TeamInvitation
 
 router=APIRouter(prefix='/api/v1',tags=['team-access'])
@@ -53,7 +53,7 @@ def invite_out(i):
 
 def locked_admin(db,identity,org):
     authorize(db,identity,org,admin=True)
-    db.scalar(select(Organization).where(Organization.id==org).with_for_update())
+    lock_organization(db,org)
     db.execute(select(Membership).where(Membership.organization_id==org,Membership.user_id==identity).execution_options(populate_existing=True)).scalar_one()
     return authorize(db,identity,org,admin=True)
 
@@ -119,7 +119,7 @@ def accept(payload:AcceptInput,identity:Identity,db:Db):
         # revocation/member updates: organization first, invitation second.
         org_id=db.scalar(select(TeamInvitation.organization_id).where(TeamInvitation.token_hash==digest))
         if org_id is None:raise HTTPException(404,'Invitation is invalid or expired')
-        org=db.scalar(select(Organization).where(Organization.id==org_id).with_for_update())
+        org=lock_organization(db,org_id)
         invitation=db.scalar(select(TeamInvitation).where(TeamInvitation.token_hash==digest).with_for_update())
         if invitation.revoked or utc(invitation.expires_at)<=datetime.now(timezone.utc):raise HTTPException(404,'Invitation is invalid or expired')
         if invitation.target_user_id!=identity:raise HTTPException(403,'This invitation belongs to a different account')

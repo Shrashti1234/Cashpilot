@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from audit import record_event
 from operations import TradeDocument
-from saas_domain import SaaSBase, Organization, new_id, require_member
+from saas_domain import SaaSBase, Organization, new_id, require_member,lock_organization
 
 
 class RecurringRule(SaaSBase):
@@ -45,7 +45,7 @@ def advance(day:date,frequency:str,interval:int,anchor:int)->date:
 def generate_due(db:Session,organization_id:str,identity:str,as_of:date,limit=25):
     require_member(db,identity,organization_id,write=True)
     # Serialize runs within a business, including simultaneous manual/job runs.
-    db.scalar(select(Organization).where(Organization.id==organization_id).with_for_update())
+    lock_organization(db,organization_id)
     rules=list(db.scalars(select(RecurringRule).where(RecurringRule.organization_id==organization_id,
         RecurringRule.active.is_(True),RecurringRule.next_date<=as_of).order_by(RecurringRule.next_date,RecurringRule.id).with_for_update()))
     created=[];errors=[]
