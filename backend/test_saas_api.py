@@ -101,6 +101,7 @@ def test_invoice_summary_and_payment_history_are_tenant_scoped(api):
     assert summary.json() == {
         "total_invoiced_paise": 12500, "paid_paise": 0,
         "outstanding_paise": 12500, "overdue_paise": 12500,
+        "adjusted_invoiced_paise": 12500, "customer_credit_paise": 0, "refunded_paise": 0,
         "invoice_count": 1}
     payment = client.post(base + f"/invoices/{invoice_id}/payments",
                           json={"amount_paise": 2500, "idempotency_key": "summary-payment"})

@@ -2,7 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {ArrowLeft,Boxes} from 'lucide-react';
 import type {BusinessWorkspace} from './CustomerManagement';
 import {DocumentWorkbench} from './DocumentWorkbench';
-import {money,scaled,download,type Movement,type Product,type Profile,type TradeDoc} from './operationsTypes';
+import {money,scaled,download,csvCell,type Movement,type Product,type Profile,type TradeDoc} from './operationsTypes';
 import './operations.css';
 
 export type OperationsWrite=(path:string,data:unknown,onSaved?:(body:{id?:string})=>void)=>Promise<void>;
@@ -44,7 +44,7 @@ export function OperationsWorkspace({apiUrl,accessToken,workspace,onBack}:Props)
  function saveProduct(e:React.FormEvent){e.preventDefault();try{
   void write('/products'+(editingProduct?'/'+editingProduct:''),{sku:productForm.sku,name:productForm.name,unit:productForm.unit,hsn_sac:productForm.hsn_sac,unit_price_paise:scaled(productForm.price,2),tax_rate_bps:scaled(productForm.rate,2),track_stock:productForm.track,reorder_milliunits:scaled(productForm.reorder,3),active:productForm.active},()=>{setEditingProduct('');setProductForm(emptyProduct);});
  }catch(e){setError((e as Error).message);}}
- function exportCatalogue(){const quote=(s:unknown)=>'"'+String(s).replace(/"/g,'""')+'"';const rows=[['sku','name','unit','price_inr','tax_percent','stock_units'],...products.map(p=>[p.sku,p.name,p.unit,(p.unit_price_paise/100).toFixed(2),(p.tax_rate_bps/100).toFixed(2),p.track_stock?(p.stock_milliunits/1000).toFixed(3):'not tracked'])];download('catalogue.csv',rows.map(row=>row.map(quote).join(',')).join('\r\n'),'text/csv');}
+ function exportCatalogue(){const rows=[['sku','name','unit','price_inr','tax_percent','stock_units'],...products.map(p=>[p.sku,p.name,p.unit,(p.unit_price_paise/100).toFixed(2),(p.tax_rate_bps/100).toFixed(2),p.track_stock?(p.stock_milliunits/1000).toFixed(3):'not tracked'])];download('catalogue.csv',rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),'text/csv');}
  return <div className="workspace-screen"><div className="workspace-top"><div className="workspace-brand"><Boxes size={24}/>CashPilot</div><span className="eyebrow">{workspace.name}</span></div><main className="decision-content ops-content">
   <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>Back to customers</button><div className="workspace-heading"><div><span className="eyebrow">FROM QUOTE TO CASH</span><h1>Business operations</h1><p>Products, stock, estimates, purchase orders and line-item invoices.</p></div></div>
   <fieldset disabled={busy} className="ops-fieldset"><nav className="lab-tabs" aria-label="Business operations">{(['documents','products','stock','profile'] as const).map(t=><button key={t} className={tab===t?'active':''} onClick={()=>{setTab(t);setError('');}}>{({documents:'Documents',products:'Products',stock:'Stock ledger',profile:'Business profile'})[t]}</button>)}</nav>

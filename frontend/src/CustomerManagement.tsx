@@ -3,6 +3,7 @@ import { ArrowLeft, FileText, FlaskConical, Plus, RefreshCw, Users, X } from 'lu
 import { DecisionLab } from './DecisionLab';
 import { DisputeManagement } from './DisputeManagement';
 import { OperationsWorkspace } from './OperationsWorkspace';
+import { FinanceWorkspace } from './FinanceWorkspace';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
 
@@ -18,6 +19,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  const [labView,setLabView] = useState(false);
  const [disputeView,setDisputeView] = useState(false);
  const [operationsView,setOperationsView] = useState(false);
+ const [financeView,setFinanceView] = useState(false);
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -56,12 +58,13 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
  if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;
  if(operationsView)return <OperationsWorkspace apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setOperationsView(false)}/>;
+ if(financeView)return <FinanceWorkspace apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setFinanceView(false)}/>;
  return <div className="workspace-screen">
   <div className="workspace-top"><div className="workspace-brand"><Users size={23}/> CashPilot</div><select aria-label="Language" value={language} onChange={e=>{const next=e.target.value as Language;setLanguage(next);try{localStorage.setItem('cashpilot-language',next)}catch{}}}>{(Object.keys(languageNames) as Language[]).map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></div>
   <div className="workspace-content">
    <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>{t.back}</button>
    <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div><div className="workspace-actions"><button className="workspace-secondary" onClick={()=>setLabView(true)}><FlaskConical size={17}/>Decision Lab</button><button className="workspace-secondary" onClick={()=>setDisputeView(true)}>Disputes &amp; activity</button><button className="workspace-secondary" onClick={()=>setInvoiceView(true)}><FileText size={17}/>Invoices</button>{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div></div>
-   <div className="workspace-actions" style={{marginBottom:24}}><button className="workspace-secondary" onClick={()=>setOperationsView(true)}>Products, stock & documents</button></div>
+   <div className="workspace-actions" style={{marginBottom:24}}><button className="workspace-secondary" onClick={()=>setOperationsView(true)}>Products, stock & documents</button><button className="workspace-secondary" onClick={()=>setFinanceView(true)}>Adjustments & statements</button></div>
    {error&&<div className="error" role="alert">{error}<button onClick={()=>void load()} aria-label={t.retry}><RefreshCw size={17}/></button></div>}
    {loading?<div className="workspace-empty">{t.loading}</div>:customers.length===0?<div className="workspace-empty">{t.empty}</div>:<section className="panel"><div className="customer-list">{customers.map(customer=><div className="customer-row" key={customer.id}><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><span>{customer.name}</span></div>)}</div></section>}
    {!canWrite&&<p>{t.readonly}</p>}

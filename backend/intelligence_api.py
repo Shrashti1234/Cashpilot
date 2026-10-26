@@ -1,7 +1,7 @@
 """Tenant-authorized cash history, model transparency and Decision Lab routes."""
 import csv
 import io
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -16,7 +16,7 @@ from audit import record_event
 from disputes import InvoiceDispute
 from intelligence import demo_inputs, model_bundle, model_report, simulate
 from saas_api import get_saas_session
-from saas_domain import Customer, Invoice, Payment, TenantAccessDenied, require_member
+from saas_domain import Customer, Invoice, Payment, TenantAccessDenied, require_member, invoice_positions
 from request_limits import allow_simulation
 
 router=APIRouter(prefix='/api/v1/organizations/{organization_id}',tags=['intelligence'])
@@ -25,6 +25,11 @@ Db=Annotated[Session,Depends(get_saas_session)]
 
 
 def today(): return datetime.now(ZoneInfo('Asia/Kolkata')).date()
+
+
+def payment_day(timestamp):
+    if timestamp.tzinfo is None: timestamp=timestamp.replace(tzinfo=timezone.utc)
+    return timestamp.astimezone(ZoneInfo('Asia/Kolkata')).date()
 
 
 class CashEntryInput(BaseModel):
@@ -90,24 +95,26 @@ def tenant_inputs(db,organization_id,as_of):
     if len(invoices)>2000: raise HTTPException(422,'This evaluation release supports at most 2,000 invoices per workspace')
     customers={c.id:c.name for c in db.scalars(select(Customer).where(Customer.organization_id==organization_id))}
     payments=list(db.scalars(select(Payment).where(Payment.organization_id==organization_id).order_by(Payment.created_at,Payment.id)))
+    positions=invoice_positions(db,organization_id,invoices)
     by_invoice={}
     for p in payments:
-        paid_day=p.created_at.date()
+        paid_day=payment_day(p.created_at)
         if paid_day<=as_of: by_invoice.setdefault(p.invoice_id,[]).append(p)
     history={}; outstanding=[]
     for inv in invoices:
         total=0; settled=None
         for p in by_invoice.get(inv.id,[]):
             total+=p.amount_paise
-            if total>=inv.total_paise and settled is None: settled=p.created_at.date()
-        if settled:
+            if total>=inv.total_paise and settled is None: settled=payment_day(p.created_at)
+        position=positions[inv.id]
+        if settled and not any(position[k] for k in ['credit_paise','debit_paise','refunded_paise']):
             history.setdefault(inv.customer_id,[]).append({'due_date':inv.due_date,'paid_date':settled})
-        if total<inv.total_paise: outstanding.append((inv,total))
+        if position['outstanding_paise']>0: outstanding.append((inv,position))
     if len(outstanding)>200: raise HTTPException(422,'This release supports up to 200 outstanding invoices in a simulation')
     disputed=set(db.scalars(select(InvoiceDispute.invoice_id).where(InvoiceDispute.organization_id==organization_id,InvoiceDispute.status!='resolved')))
-    invoice_rows=[{'id':i.id,'customer_name':customers.get(i.customer_id,'Customer'),'total_paise':i.total_paise,
-                   'outstanding_paise':i.total_paise-paid,'due_date':i.due_date,'history':history.get(i.customer_id,[]),'disputed':i.id in disputed}
-                  for i,paid in outstanding]
+    invoice_rows=[{'id':i.id,'customer_name':customers.get(i.customer_id,'Customer'),'total_paise':position['effective_total_paise'],
+                   'outstanding_paise':position['outstanding_paise'],'due_date':i.due_date,'history':history.get(i.customer_id,[]),'disputed':i.id in disputed}
+                  for i,position in outstanding]
     entries=list(db.scalars(select(CashEntry).where(CashEntry.organization_id==organization_id).order_by(CashEntry.entry_date)))
     if len(entries)>10000: raise HTTPException(422,'Use at most 10,000 cash entries in this evaluation release')
     entry_rows=[{**entry_out(e),'entry_date':e.entry_date} for e in entries]

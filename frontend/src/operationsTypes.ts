@@ -32,3 +32,8 @@ export function previewTotals(lines:Line[],supplierState:string,place:string):To
 export function download(filename:string,data:string,type='application/json'){
  const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+export function csvCell(value:unknown):string{
+ let text=String(value);
+ if(typeof value!=='number'&&/^[=+\-@\t\r]/.test(text)&&!/^[-+]?\d+(?:\.\d+)?$/.test(text))text="'"+text;
+ return '"'+text.replace(/"/g,'""')+'"';
+}

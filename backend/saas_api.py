@@ -9,11 +9,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from auth_identity import get_verified_identity
 from saas_domain import (
     Customer, Invoice, Payment, TenantAccessDenied, create_invoice, list_invoices,
-    record_payment, require_member,
+    record_payment, require_member, invoice_positions,
 )
 from sqlalchemy import select
 from collections_intelligence import Receivable, collections_plan
@@ -40,11 +41,11 @@ class InvoiceCreate(BaseModel):
     customer_id: str
     invoice_number: str = Field(min_length=1, max_length=64)
     due_date: date
-    total_paise: int = Field(gt=0)
+    total_paise: int = Field(gt=0, le=2_000_000_000, strict=True)
 
 
 class PaymentCreate(BaseModel):
-    amount_paise: int = Field(gt=0)
+    amount_paise: int = Field(gt=0, le=2_000_000_000, strict=True)
     idempotency_key: str = Field(min_length=1, max_length=100)
 
 
@@ -62,8 +63,9 @@ def invoice_out(invoice: Invoice) -> dict:
 @router.get("/invoices")
 def invoices(organization_id: str, identity: Identity, db: Db):
     try:
-        return {"invoices": [invoice_out(x) for x in list_invoices(
-            db, user_id=identity, organization_id=organization_id)]}
+        rows = list_invoices(db, user_id=identity, organization_id=organization_id)
+        positions = invoice_positions(db, organization_id, rows)
+        return {"invoices": [{**invoice_out(x), **positions[x.id]} for x in rows]}
     except TenantAccessDenied:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -115,6 +117,9 @@ def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity
     except ValueError as exc:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail='This identifier already exists. Refresh and retry.') from None
 
 
 
@@ -131,12 +136,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
             item.id: item.name for item in db.scalars(select(Customer).where(
                 Customer.organization_id == organization_id))
         }
-        paid_by_invoice: dict[str, int] = {}
-        for payment in db.scalars(select(Payment).where(
-            Payment.organization_id == organization_id,
-            Payment.invoice_id.in_(ids))):
-            paid_by_invoice[payment.invoice_id] = (
-                paid_by_invoice.get(payment.invoice_id, 0) + payment.amount_paise)
+        positions = invoice_positions(db, organization_id, invoices_for_org)
         disputed_ids = set(db.scalars(select(InvoiceDispute.invoice_id).where(
             InvoiceDispute.organization_id == organization_id,
             InvoiceDispute.invoice_id.in_(ids),
@@ -145,7 +145,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
             Receivable(invoice_id=invoice.id,
                        customer_name=customers_by_id.get(invoice.customer_id, "Customer"),
                        due_date=invoice.due_date,
-                       outstanding_paise=max(invoice.total_paise - paid_by_invoice.get(invoice.id, 0), 0),
+                       outstanding_paise=positions[invoice.id]['outstanding_paise'],
                        disputed=invoice.id in disputed_ids)
             for invoice in invoices_for_org
         ]
@@ -159,25 +159,21 @@ def invoice_summary(organization_id: str, identity: Identity, db: Db):
     """Aggregate only invoices and payments belonging to the authorized tenant."""
     try:
         invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
-        invoice_ids = [item.id for item in invoices_for_org]
-        payments = list(db.scalars(select(Payment).where(
-            Payment.organization_id == organization_id,
-            Payment.invoice_id.in_(invoice_ids)))) if invoice_ids else []
-        paid_by_invoice: dict[str, int] = {}
-        for payment in payments:
-            paid_by_invoice[payment.invoice_id] = (
-                paid_by_invoice.get(payment.invoice_id, 0) + payment.amount_paise)
+        positions = invoice_positions(db, organization_id, invoices_for_org)
         today = date.today()
         total = sum(item.total_paise for item in invoices_for_org)
-        paid = sum(paid_by_invoice.values())
+        paid = sum(p['paid_paise'] for p in positions.values())
         overdue = sum(
-            item.total_paise - paid_by_invoice.get(item.id, 0)
+            positions[item.id]['outstanding_paise']
             for item in invoices_for_org
-            if item.due_date < today and item.total_paise > paid_by_invoice.get(item.id, 0)
+            if item.due_date < today
         )
         return {"total_invoiced_paise": total, "paid_paise": paid,
-                "outstanding_paise": total - paid, "overdue_paise": overdue,
-                "invoice_count": len(invoices_for_org)}
+                "outstanding_paise": sum(p['outstanding_paise'] for p in positions.values()), "overdue_paise": overdue,
+                "invoice_count": len(invoices_for_org),
+                "adjusted_invoiced_paise": sum(p['effective_total_paise'] for p in positions.values()),
+                "customer_credit_paise": sum(p['credit_balance_paise'] for p in positions.values()),
+                "refunded_paise": sum(p['refunded_paise'] for p in positions.values())}
     except TenantAccessDenied:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -219,3 +215,6 @@ def add_payment(organization_id: str, invoice_id: str, payload: PaymentCreate,
     except ValueError as exc:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail='The payment key is already in use. Refresh the payment history.') from None

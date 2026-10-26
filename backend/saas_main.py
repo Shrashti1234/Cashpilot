@@ -20,6 +20,7 @@ from saas_api import get_saas_session, router as invoices_router
 from intelligence_api import router as intelligence_router
 from disputes_api import router as disputes_router
 from operations_api import router as operations_router
+from finance_api import router as finance_router
 
 
 @asynccontextmanager
@@ -72,6 +73,7 @@ app.include_router(invoices_router)
 app.include_router(intelligence_router)
 app.include_router(disputes_router)
 app.include_router(operations_router)
+app.include_router(finance_router)
 
 
 def session_dependency():

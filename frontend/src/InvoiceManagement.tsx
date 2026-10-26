@@ -3,8 +3,8 @@ import {ArrowLeft,FileText,Plus,RefreshCw,X} from 'lucide-react';
 import type {BusinessWorkspace} from './CustomerManagement';
 
 type Customer={id:string;name:string};
-type Invoice={id:string;customer_id:string;invoice_number:string;due_date:string;total_paise:number};
-type Summary={total_invoiced_paise:number;paid_paise:number;outstanding_paise:number;overdue_paise:number;invoice_count:number};
+type Invoice={id:string;customer_id:string;invoice_number:string;due_date:string;total_paise:number;outstanding_paise?:number;effective_total_paise?:number};
+type Summary={total_invoiced_paise:number;paid_paise:number;outstanding_paise:number;overdue_paise:number;invoice_count:number;adjusted_invoiced_paise?:number;customer_credit_paise?:number;refunded_paise?:number};
 type Payment={id:string;amount_paise:number;created_at:string};
 type CollectionAction={invoice_id:string;customer_name:string;outstanding_paise:number;overdue_days:number;action:string;reason:string;priority_score:number};
 type CollectionPlan={method:string;disclaimer:string;actions:CollectionAction[]};
@@ -70,7 +70,7 @@ export function InvoiceManagement({apiUrl,accessToken,workspace,onBack}:Props){
  async function submitPayment(e:React.FormEvent){
   e.preventDefault();if(!paymentInvoice||busy||!canWrite)return;
   const paise=Math.round(Number(paymentAmount)*100);
-  const outstanding=paymentInvoice.total_paise-paymentHistory.reduce((sum,p)=>sum+p.amount_paise,0);
+  const outstanding=paymentInvoice.outstanding_paise??(paymentInvoice.total_paise-paymentHistory.reduce((sum,p)=>sum+p.amount_paise,0));
   if(!Number.isSafeInteger(paise)||paise<=0||paise>outstanding){setError('Payment must be positive and no more than the outstanding balance.');return;}
   setBusy(true);setError('');
   try{const response=await fetch(base+'/invoices/'+encodeURIComponent(paymentInvoice.id)+'/payments',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({amount_paise:paise,idempotency_key:paymentRequestKey})});if(!response.ok){const body=await response.json().catch(()=>null);throw new Error(typeof body?.detail==='string'?body.detail:'Could not save payment.');}setPaymentInvoice(null);setPaymentRequestKey(crypto.randomUUID());await load();}catch(e){setError(e instanceof Error?e.message:'Could not save payment.');}finally{setBusy(false);}
