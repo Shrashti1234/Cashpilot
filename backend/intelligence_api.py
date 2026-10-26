@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from auth_identity import get_verified_identity
 from cash_ledger import CashEntry
+from banking import BankMatch
 from audit import record_event
 from disputes import InvoiceDispute
 from intelligence import demo_inputs, model_bundle, model_report, simulate
@@ -166,8 +167,10 @@ def import_cash_entries(organization_id:str,payload:CsvInput,identity:Identity,d
 @router.post('/cash-entries/{entry_id}')
 def update_cash_entry(organization_id:str,entry_id:str,payload:CashEntryInput,identity:Identity,db:Db):
     authorize(db,identity,organization_id,True)
-    entry=db.scalar(select(CashEntry).where(CashEntry.organization_id==organization_id,CashEntry.id==entry_id))
+    entry=db.scalar(select(CashEntry).where(CashEntry.organization_id==organization_id,CashEntry.id==entry_id).with_for_update())
     if entry is None:raise HTTPException(404,'Cash entry not found in this workspace')
+    if db.scalar(select(BankMatch.id).where(BankMatch.organization_id==organization_id,BankMatch.cash_entry_id==entry.id,BankMatch.active.is_(True))):
+        raise HTTPException(409,'Reverse the bank match before editing this cash record')
     for key,value in payload.model_dump().items():setattr(entry,key,value)
     record_event(db,organization_id,identity,'cash_entry.updated',entry.id)
     db.commit();db.refresh(entry)

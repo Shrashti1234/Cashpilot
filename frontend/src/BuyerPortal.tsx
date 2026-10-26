@@ -20,7 +20,7 @@ export function BuyerPortal({apiUrl,initialToken}:{apiUrl:string;initialToken:st
   void request('inspect',{},controller.signal).then(result=>{if(active)setData(result);}).catch(e=>{if(active)setError(e instanceof Error?e.message:'Invoice unavailable.');}).finally(()=>window.clearTimeout(timeout));
   return()=>{active=false;controller.abort();window.clearTimeout(timeout);};
  },[apiUrl,initialToken,revision]);
- useEffect(()=>{if(!data)return;const timer=window.setTimeout(()=>{setData(null);setError('This private access has expired. Ask the business for a new link.');},Math.min(Math.max(Date.parse(data.expires_at)-Date.now(),0),2147483647));return()=>window.clearTimeout(timer);},[data]);
+ useEffect(()=>{if(!data)return;let timer:number;function check(){const remaining=Date.parse(data!.expires_at)-Date.now();if(remaining<=0){setData(null);setError('This private access has expired. Ask the business for a new link.');}else timer=window.setTimeout(check,Math.min(remaining,3600000));}check();return()=>window.clearTimeout(timer);},[data]);
  async function submit(e:React.FormEvent,kind:'promise'|'dispute'){
   e.preventDefault();if(busy)return;setBusy(true);setError('');
   try{await request(kind,kind==='promise'?{amount_paise:scaled(amount,2),promised_date:day,note,request_key:requestKey}:{reason,description});setRequestKey(crypto.randomUUID());setNote('');setDescription('');setRevision(v=>v+1);}

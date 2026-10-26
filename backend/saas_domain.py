@@ -79,6 +79,7 @@ class Payment(SaaSBase):
     __table_args__ = (
         ForeignKeyConstraint(["organization_id", "invoice_id"], ["saas_invoices.organization_id", "saas_invoices.id"]),
         UniqueConstraint("organization_id", "idempotency_key"),
+        UniqueConstraint("organization_id", "id"),
         CheckConstraint("amount_paise > 0"),
     )
 
@@ -118,6 +119,7 @@ class InvoiceRefund(SaaSBase):
     __table_args__ = (
         ForeignKeyConstraint(['organization_id', 'invoice_id'], ['saas_invoices.organization_id', 'saas_invoices.id']),
         UniqueConstraint('organization_id', 'idempotency_key'),
+        UniqueConstraint('organization_id', 'id'),
         Index('ix_saas_invoice_refunds_org_invoice', 'organization_id', 'invoice_id'),
         CheckConstraint('amount_paise > 0 AND amount_paise <= 2000000000'),
     )

@@ -13,6 +13,7 @@ import operations  # noqa: F401
 import recurring  # noqa: F401
 import teams  # noqa: F401
 import buyer_access,promises  # noqa: F401
+import banking  # noqa: F401
 
 
 def test_migration_matches_orm_columns(tmp_path, monkeypatch):

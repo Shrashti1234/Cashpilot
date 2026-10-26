@@ -15,6 +15,7 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 import audit,disputes,cash_ledger,recurring,teams,buyer_access,promises  # register all dependent tables
+import banking
 from finance_api import RefundInput,add_refund
 from intelligence_api import today
 from operations import BusinessProfile,Product,StockMovement,TradeDocument,post_stock,stock_balance
@@ -96,6 +97,24 @@ def test_postgres_duplicate_payment_requests_return_one_posted_receipt(pg):
     with Session(pg['runtime']) as db:
         assert db.scalar(select(func.count()).select_from(Payment).where(Payment.organization_id==pg['org']))==1
         assert invoice_positions(db,pg['org'],[db.get(Invoice,inv)])[inv]['outstanding_paise']==4000
+
+
+def test_postgres_bank_matches_preserve_evidence_and_serialize_competing_rows(pg):
+    from banking_api import AccountInput,StatementInput,MatchInput,add_account,import_statement,reconcile
+    inv=new_invoice(pg)
+    with Session(pg['runtime'],expire_on_commit=False) as db:
+        receipt=record_payment(db,user_id=pg['user'],organization_id=pg['org'],invoice_id=inv,amount_paise=5000,idempotency_key='bank-fixture');db.commit();receipt_id=receipt.id
+        acct=add_account(pg['org'],AccountInput(label='Local bank fixture'),pg['user'],db)['id']
+        csv_text=f'booked_date,reference,description,amount_inr,currency\n{today()},A,Fixture credit,50.00,INR\n{today()},B,Other fixture credit,50.00,INR'
+        assert import_statement(pg['org'],acct,StatementInput(csv_text=csv_text),pg['user'],db)['imported']==2
+        txs=list(db.scalars(select(banking.BankTransaction.id).where(banking.BankTransaction.organization_id==pg['org'])))
+        assert not db.scalar(text("SELECT has_table_privilege(current_user,'saas_bank_transactions','UPDATE') OR has_table_privilege(current_user,'saas_bank_transactions','DELETE')"))
+    def match(index):
+        with Session(pg['runtime']) as db:
+            try:reconcile(pg['org'],txs[index],MatchInput(kind='payment',target_id=receipt_id,note='Synthetic reference review',confirmed=True),pg['user'],db);return 'matched'
+            except HTTPException as exc:assert exc.status_code in {409,422};return 'rejected'
+    assert sorted(parallel(match))==['matched','rejected']
+    with Session(pg['runtime']) as db:assert db.scalar(select(func.count()).select_from(banking.BankMatch).where(banking.BankMatch.organization_id==pg['org']))==1
 
 
 def test_postgres_concurrent_refunds_cannot_spend_the_same_customer_credit(pg):
