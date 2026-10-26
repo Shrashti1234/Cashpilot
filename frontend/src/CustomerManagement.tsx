@@ -9,6 +9,7 @@ import { BuyerAccessManager } from './BuyerAccessManager';
 import { BankReconciliation } from './BankReconciliation';
 import { ContactControls } from './ContactControls';
 import { ForecastJournal } from './ForecastJournal';
+import { InvoiceEvidence } from './InvoiceEvidence';
 import { BusinessOverview,type WorkspaceSection } from './BusinessOverview';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
@@ -33,6 +34,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  const [bankView,setBankView] = useState(false);
  const [contactView,setContactView] = useState(false);
  const [journalView,setJournalView] = useState(false);
+ const [evidenceView,setEvidenceView] = useState(false);
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -68,6 +70,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   finally{setBusy(false);}
  }
  function openSection(section:WorkspaceSection){
+  setEvidenceView(section==='evidence');
   setJournalView(section==='journal');
   setContactView(section==='contacts');
   setBankView(section==='banking');
@@ -80,6 +83,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  if(bankView)return <BankReconciliation apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setBankView(false)}/>;
  if(contactView)return <ContactControls apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setContactView(false)}/>;
  if(journalView)return <ForecastJournal apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setJournalView(false)}/>;
+ if(evidenceView)return <InvoiceEvidence apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setEvidenceView(false)}/>;
  if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} initialTab={labInitialTab} onBack={()=>setLabView(false)}/>;
  if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
  if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;

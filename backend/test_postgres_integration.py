@@ -140,6 +140,18 @@ def test_postgres_forecast_snapshots_are_replay_safe_and_immutable(pg):
         assert not db.scalar(text("SELECT has_table_privilege(current_user,'saas_forecast_snapshots','UPDATE') OR has_table_privilege(current_user,'saas_forecast_reviews','DELETE')"))
 
 
+def test_postgres_invoice_bundle_uses_restricted_runtime_permissions(pg):
+    from evidence import invoice_packet,make_bundle
+    from zipfile import ZipFile
+    from io import BytesIO
+    import json
+    inv=new_invoice(pg)
+    with Session(pg['runtime']) as db:
+        packet=invoice_packet(db,pg['org'],inv,pg['user']);bundle=make_bundle(packet,pg['org'],inv);db.commit()
+        with ZipFile(BytesIO(bundle)) as archive:
+            assert json.loads(archive.read('ledger.json'))['outstanding_paise']==10000
+
+
 def test_postgres_concurrent_refunds_cannot_spend_the_same_customer_credit(pg):
     inv=new_invoice(pg)
     with Session(pg['runtime']) as db:

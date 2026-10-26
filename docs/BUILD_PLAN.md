@@ -43,8 +43,10 @@ Placeholders and simulated successes do not satisfy this rule.
    note generation and actual payment-provider refunds remain pending.
 3. Collaboration and approvals: [local team administration](TEAM_ACCESS.md) now
    supports a second approver and access revocation. [Private buyer invoice access
-   and payment commitments](BUYER_ACCESS.md) are implemented locally. Evidence,
-   branches and broader approval rules remain pending.
+   and payment commitments](BUYER_ACCESS.md) are implemented locally. [Private
+   invoice record bundles](INVOICE_EVIDENCE.md) now export related application
+   records with integrity checksums. Original attachments, branches and broader
+   approval rules remain pending.
 4. [Manual statement reconciliation](BANK_RECONCILIATION.md) is implemented locally:
    preview/import, duplicate protection, exact one-to-one matching to existing
    ledger records, reversal history and matched-cash edit protection. Live bank
@@ -64,8 +66,8 @@ Placeholders and simulated successes do not satisfy this rule.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 
-Current local checkpoint: 110 backend tests (including ten PostgreSQL checks),
-55 frontend tests and frontend build pass. CI remains unpushed.
+Current local checkpoint: 114 backend tests (including eleven PostgreSQL checks),
+57 frontend tests and frontend build pass. CI remains unpushed.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the

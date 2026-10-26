@@ -1,0 +1,20 @@
+import React,{useState} from 'react';
+import type {BusinessWorkspace} from './CustomerManagement';
+import {useAuthenticatedResource} from './useAuthenticatedResource';
+import './buyer.css';
+type Preview={invoice_number:string;categories:Record<string,number>;note:string};
+export function InvoiceEvidence({apiUrl,accessToken,workspace,onBack}:{apiUrl:string;accessToken:string;workspace:BusinessWorkspace;onBack:()=>void}){
+ const admin=['owner','admin'].includes(workspace.role),org=apiUrl+'/api/v1/organizations/'+encodeURIComponent(workspace.id);
+ const [invoice,setInvoice]=useState(''),[preview,setPreview]=useState<Preview|null>(null),[confirmed,setConfirmed]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const invoices=useAuthenticatedResource<{invoices:{id:string;invoice_number:string}[]}>(admin?org+'/invoices':null,accessToken);
+ async function request(kind:'preview'|'bundle'){
+  if(busy||!invoice)return;setBusy(true);setError('');setMessage('');
+  try{const r=await fetch(org+'/evidence/invoices/'+encodeURIComponent(invoice)+'/'+kind,{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify(kind==='bundle'?{confirmed_private_download:confirmed}:{}),signal:AbortSignal.timeout(90000)});
+   if(!r.ok){const data=await r.json().catch(()=>null);throw new Error(typeof data?.detail==='string'?data.detail:'Could not prepare the invoice record bundle.');}
+   if(kind==='preview'){setPreview(await r.json());setConfirmed(false);}else{const blob=await r.blob(),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='cashpilot-invoice-records.zip';link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);setConfirmed(false);setMessage('Invoice record bundle downloaded. Nothing was sent to another person.');}
+  }catch(e){setError(e instanceof Error?e.message:'Could not export.');}finally{setBusy(false);}
+ }
+ return <div className="workspace-screen"><main className="buyer-content"><button onClick={onBack}>Back to business</button><span className="eyebrow">{workspace.name}</span><h1>Invoice evidence export</h1><p>Prepare a private bundle of the selected invoice's application records. Original uploaded delivery documents and independently verified provider confirmations are not attached.</p>{[error,invoices.error].filter(Boolean).map((e,i)=><p className="error" role="alert" key={i}>{e}</p>)}{message&&<p role="status">{message}</p>}
+ {!admin?<p>Only business owners and administrators can export these combined private records.</p>:<><label>Invoice to export<select aria-label="Invoice to export" disabled={busy} value={invoice} onChange={e=>{setInvoice(e.target.value);setPreview(null);setConfirmed(false);setError('');setMessage('');}}><option value="">Choose issued invoice</option>{invoices.data?.invoices.map(i=><option key={i.id} value={i.id}>{i.invoice_number}</option>)}</select></label><button disabled={busy||!invoice} onClick={()=>void request('preview')}>Review included records</button>{preview&&<section className="panel"><h2>{preview.invoice_number}</h2><p>{preview.note}</p><div className="lab-metrics">{Object.entries(preview.categories).map(([name,count])=><div key={name}><span>{name.replace(/_/g,' ')}</span><strong>{count}</strong></div>)}</div><p>The bundle includes JSON records, a readable scope note, and a SHA-256 checksum manifest. Checksums detect file changes; they do not certify authenticity, delivery, settlement or statutory compliance.</p><p>Private buyer codes and their hashes, authentication credentials and replay keys are excluded. Internal financial notes and customer contact evidence are included.</p><label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I intend to download these private records and will choose any recipient myself.</label><button disabled={busy||!confirmed} onClick={()=>void request('bundle')}>Download private ZIP bundle</button></section>}</>}
+ </main></div>;
+}
