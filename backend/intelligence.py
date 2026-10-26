@@ -50,6 +50,7 @@ def expense_projection(entries,as_of,days):
     observed_days=(as_of-first).days
     daily={}
     for entry in actual:
+        if entry['entry_date']<first:continue
         daily[entry['entry_date']]=daily.get(entry['entry_date'],0)+entry['amount_paise']
     history=[daily.get(first+timedelta(days=i),0) for i in range(observed_days)]
     model=model_bundle()['cashflow']

@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 import audit,disputes,cash_ledger,recurring,teams,buyer_access,promises  # register all dependent tables
 import banking
 import contacts
+import forecast_journal
 from finance_api import RefundInput,add_refund
 from intelligence_api import today
 from operations import BusinessProfile,Product,StockMovement,TradeDocument,post_stock,stock_balance
@@ -129,6 +130,14 @@ def test_postgres_contact_history_is_append_only_and_controls_drafts(pg):
         assert record_contact(pg['org'],payload,pg['user'],db)['id']==first['id']
         assert reminder_preview(pg['org'],PreviewInput(invoice_id=inv,channel='email'),pg['user'],db)['eligible'] is False
         assert not db.scalar(text("SELECT has_table_privilege(current_user,'saas_contact_records','UPDATE') OR has_table_privilege(current_user,'saas_contact_consent_changes','DELETE')"))
+
+
+def test_postgres_forecast_snapshots_are_replay_safe_and_immutable(pg):
+    with Session(pg['runtime']) as db:
+        first=forecast_journal.create_snapshot(db,pg['org'],pg['user'],today(),'snapshot-fixture');db.commit();snapshot_id=first.id
+        replay=forecast_journal.create_snapshot(db,pg['org'],pg['user'],today(),'snapshot-fixture');db.commit();assert replay.id==snapshot_id
+        assert first.payload['expense_method']=='no_expense_history'
+        assert not db.scalar(text("SELECT has_table_privilege(current_user,'saas_forecast_snapshots','UPDATE') OR has_table_privilege(current_user,'saas_forecast_reviews','DELETE')"))
 
 
 def test_postgres_concurrent_refunds_cannot_spend_the_same_customer_credit(pg):

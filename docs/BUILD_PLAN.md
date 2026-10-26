@@ -55,13 +55,17 @@ Placeholders and simulated successes do not satisfy this rule.
    provider is connected and no customer message has been sent.
 5. [Local overview, aging and concentration](BUSINESS_OVERVIEW.md) are implemented,
    with recorded cash/expense charts, low-stock/review queues and factual attention
-   flags. Proactive shortage alerts and forecast monitoring remain pending.
+   flags. [The local forecast journal](FORECAST_JOURNAL.md) now preserves dated
+   outlooks, compares completed windows with recorded expenses, invalidates reviews
+   after record changes, and supports optional conditional cash-threshold attention.
+   Installed scheduling, notification delivery, statistical drift and real-world
+   validation remain pending.
 6. India-specific workbench, evidence exports and integration checks.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 
-Current local checkpoint: 105 backend tests (including nine PostgreSQL checks),
-52 frontend tests and frontend build pass. CI remains unpushed.
+Current local checkpoint: 110 backend tests (including ten PostgreSQL checks),
+55 frontend tests and frontend build pass. CI remains unpushed.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the
