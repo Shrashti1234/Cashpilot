@@ -27,7 +27,7 @@ def test_invoice_bundle_is_scoped_complete_checksummed_and_excludes_private_code
         assert all(value not in combined for value in ['SECRET-1','Secret foreign',link['token'],hashlib.sha256(link['token'].encode()).hexdigest(),'"token_hash"','"request_key"','"idempotency_key"'])
         ledger=json.loads(archive.read('ledger.json'));assert ledger['outstanding_paise']==9000
         assert json.loads(archive.read('documents.json'))==[]
-    path=tmp_path/'bundle.zip';path.write_bytes(response.content);assert verify_bundle(path)==9
+    path=tmp_path/'bundle.zip';path.write_bytes(response.content);assert verify_bundle(path)==10
     with Session(engine) as db:assert db.scalar(select(func.count()).select_from(AuditEvent).where(AuditEvent.action=='invoice.evidence_exported'))==1
 
 

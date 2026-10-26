@@ -16,6 +16,7 @@ import buyer_access,promises  # noqa: F401
 import banking  # noqa: F401
 import contacts  # noqa: F401
 import forecast_journal  # noqa: F401
+import financial_approvals  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

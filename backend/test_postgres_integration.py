@@ -18,6 +18,7 @@ import audit,disputes,cash_ledger,recurring,teams,buyer_access,promises  # regis
 import banking
 import contacts
 import forecast_journal
+import financial_approvals
 from finance_api import RefundInput,add_refund
 from intelligence_api import today
 from operations import BusinessProfile,Product,StockMovement,TradeDocument,post_stock,stock_balance
@@ -150,6 +151,22 @@ def test_postgres_invoice_bundle_uses_restricted_runtime_permissions(pg):
         packet=invoice_packet(db,pg['org'],inv,pg['user']);bundle=make_bundle(packet,pg['org'],inv);db.commit()
         with ZipFile(BytesIO(bundle)) as archive:
             assert json.loads(archive.read('ledger.json'))['outstanding_paise']==10000
+
+
+def test_postgres_financial_approval_posts_once_with_immutable_request_payload(pg):
+    from financial_approvals_api import PolicyInput,RequestInput,DecisionInput,set_policy,request_approval,decide
+    reviewer=str(uuid4());inv=new_invoice(pg)
+    with Session(pg['runtime']) as db:
+        db.add(Membership(organization_id=pg['org'],user_id=reviewer,role='admin',active=True));db.commit()
+        set_policy(pg['org'],PolicyInput(require_approval=True),pg['user'],db)
+        row=request_approval(pg['org'],RequestInput(invoice_id=inv,operation='memo',memo={'kind':'credit','number':'PG-APPROVAL','amount_paise':1000,'reason':'Synthetic independent review'},request_key='approval-fixture'),pg['user'],db);rid=row['id']
+        assert not db.scalar(text("SELECT has_column_privilege(current_user,'saas_financial_approvals','payload','UPDATE') OR has_column_privilege(current_user,'saas_financial_approvals','requested_by','UPDATE')"))
+    def approve(_):
+        with Session(pg['runtime']) as db:return decide(pg['org'],rid,DecisionInput(decision='approve',note='Reviewed synthetic fixture'),reviewer,db)['posted_id']
+    ids=parallel(approve);assert ids[0]==ids[1]
+    with Session(pg['runtime']) as db:
+        assert db.scalar(select(func.count()).select_from(InvoiceMemo).where(InvoiceMemo.organization_id==pg['org']))==1
+        assert invoice_positions(db,pg['org'],[db.get(Invoice,inv)])[inv]['outstanding_paise']==9000
 
 
 def test_postgres_concurrent_refunds_cannot_spend_the_same_customer_credit(pg):

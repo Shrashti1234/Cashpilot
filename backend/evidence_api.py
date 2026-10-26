@@ -18,7 +18,7 @@ def preview_export(organization_id:str,invoice_id:str,identity:Identity,db:Db):
     try:
         packet=invoice_packet(db,organization_id,invoice_id,identity)
         return {'invoice_number':packet['invoice.json']['invoice']['invoice_number'],'categories':{
-            'documents':len(packet['documents.json']),'receipts':len(packet['ledger.json']['payments']),'memos':len(packet['ledger.json']['memos']),
+            'documents':len(packet['documents.json']),'financial_requests':len(packet['approvals.json']),'receipts':len(packet['ledger.json']['payments']),'memos':len(packet['ledger.json']['memos']),
             'refunds':len(packet['ledger.json']['refunds']),'issues':len(packet['issues.json']),'commitments':len(packet['commitments.json']),
             'completed_contacts':len(packet['contacts.json']['completed_external_contacts']),'consent_changes':len(packet['contacts.json']['customer_consent_history']),
             'reconciliation_matches':len(packet['reconciliation.json']['matches']),'activity_events':len(packet['activity.json'])},

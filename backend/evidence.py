@@ -10,6 +10,7 @@ from banking import BankAccount,BankTransaction,BankMatch
 from contacts import ContactPreference,ContactConsentChange,ContactRecord
 from disputes import InvoiceDispute
 from finance_api import invoice_ledger
+from financial_approvals import FinancialApproval
 from operations import TradeDocument,BusinessProfile
 from operations_api import authorize
 from promises import PaymentPromise,promise_out,received_since
@@ -40,12 +41,13 @@ def invoice_packet(db,org,invoice_id,actor):
     preferences=rows(db,select(ContactPreference).where(ContactPreference.organization_id==org,ContactPreference.customer_id==invoice.customer_id).order_by(ContactPreference.channel))
     promises=rows(db,select(PaymentPromise).where(PaymentPromise.organization_id==org,PaymentPromise.invoice_id==invoice.id).order_by(PaymentPromise.created_at))
     issues=rows(db,select(InvoiceDispute).where(InvoiceDispute.organization_id==org,InvoiceDispute.invoice_id==invoice.id))
+    approvals=rows(db,select(FinancialApproval).where(FinancialApproval.organization_id==org,FinancialApproval.invoice_id==invoice.id).order_by(FinancialApproval.created_at))
     receipts=[r['id'] for r in ledger['payments']];refunds=[r['id'] for r in ledger['refunds']]
     matches=rows(db,select(BankMatch).where(BankMatch.organization_id==org,or_(BankMatch.payment_id.in_(receipts),BankMatch.refund_id.in_(refunds))).order_by(BankMatch.created_at))
     bank_rows=rows(db,select(BankTransaction).where(BankTransaction.organization_id==org,BankTransaction.id.in_([m.transaction_id for m in matches])).order_by(BankTransaction.booked_date,BankTransaction.id))
     accounts=rows(db,select(BankAccount).where(BankAccount.organization_id==org,BankAccount.id.in_([t.account_id for t in bank_rows])))
     identifiers={invoice.id,*receipts,*refunds,*[m['id'] for m in ledger['memos']]}
-    for group in [documents,contacts,changes,preferences,promises,issues,matches,bank_rows]:identifiers.update(r.id for r in group)
+    for group in [documents,contacts,changes,preferences,promises,issues,matches,bank_rows,approvals]:identifiers.update(r.id for r in group)
     events=rows(db,select(AuditEvent).where(AuditEvent.organization_id==org,AuditEvent.resource_id.in_(identifiers)).order_by(AuditEvent.occurred_at,AuditEvent.id))
     return {
         'invoice.json':{'business_id':org,'business_name':business.name,'customer':fields(buyer,'id name'),'invoice':fields(invoice,'id invoice_number customer_id due_date total_paise'),
@@ -53,6 +55,7 @@ def invoice_packet(db,org,invoice_id,actor):
             'note':'Current profile and customer records may differ from the immutable issued document. Missing source documents and issue dates are not reconstructed.'},
         'documents.json':[fields(d,'id kind number status issue_date due_date party supplier lines totals notes created_by approved_by created_at') for d in documents],
         'ledger.json':ledger,
+        'approvals.json':[fields(r,'id operation payload status requested_by decided_by decision_note decided_at posted_id created_at') for r in approvals],
         'issues.json':[fields(d,'id status reason description resolution_note opened_at resolved_at') for d in issues],
         'commitments.json':[promise_out(p,received_since(db,p),india_today()) for p in promises],
         'contacts.json':{'completed_external_contacts':[fields(r,'id channel contact_date note actor_id created_at') for r in contacts],

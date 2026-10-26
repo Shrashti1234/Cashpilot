@@ -24,6 +24,11 @@ async function selectInvoice(){
  await screen.findByText('Record an internal adjustment');
 }
 
+it('hides direct financial posting when independent approval is required',async()=>{
+ const usual=fetchMock.getMockImplementation()!;fetchMock.mockImplementation((url:string,args?:RequestInit)=>url.endsWith('/financial-approvals/policy')?Promise.resolve({ok:true,json:async()=>({require_approval:true})}):usual(url,args));
+ render(<FinanceWorkspace {...props}/>);await screen.findByRole('option',{name:/INV-1/});fireEvent.change(screen.getByLabelText('Choose an invoice'),{target:{value:'i1'}});await screen.findByText(/Independent approval is required for memos/);expect(screen.queryByRole('button',{name:'Record adjustment'})).toBeNull();expect(screen.queryByRole('button',{name:'Record completed refund'})).toBeNull();
+});
+
 it('posts exact adjustment amounts without posting a payment or refund',async()=>{
  render(<FinanceWorkspace {...props}/>);await selectInvoice();
  fireEvent.change(screen.getByLabelText('Memo number'),{target:{value:'CR-LOCAL'}});fireEvent.change(screen.getByLabelText('Adjustment amount (INR)'),{target:{value:'12.34'}});fireEvent.change(screen.getByLabelText('Adjustment reason'),{target:{value:'Agreed reduction'}});

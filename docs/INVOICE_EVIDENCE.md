@@ -16,7 +16,8 @@ excluded. Manually imported statement rows and business-recorded contacts are no
 independently verified provider evidence. Uploaded source files are not yet part
 of this feature. Internal memos are not certified statutory GST notes.
 
-`manifest.json` records SHA-256 and byte size for nine files. The verifier checks
+`manifest.json` records SHA-256 and byte size for ten files, including financial
+approval requests and decisions. The verifier checks
 the complete file list and limits archive sizes without extracting files. These
 checks detect changed files against the supplied manifest; they do not establish
 authenticity, third-party certification or a trusted timestamp. An attacker able to
@@ -31,11 +32,11 @@ Exceeding a limit rejects the export rather than silently omitting records. The
 preview is informational; download reads current records again. Every completed
 export is audited. No cloud deployment or remote migration was performed.
 
-Verification: 114 backend tests including eleven real PostgreSQL checks, 57
+Verification: 119 backend tests including twelve real PostgreSQL checks, 61
 frontend tests and production build pass. Tests cover role/tenant boundaries,
 exclusion of private capability codes/hashes, all manifest checksums, restricted
 runtime permissions and rejection of modified ZIP contents. Local Edge downloaded
-a real fixture ZIP; the standalone verifier checked all nine files. Mobile width
+a real fixture ZIP; the standalone verifier checked the bundle files. Mobile width
 390 had no page overflow and no page errors.
 
 Remaining: private original-document storage and scanning, provider-sourced
