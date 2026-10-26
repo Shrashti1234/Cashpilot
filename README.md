@@ -1,5 +1,9 @@
 # CashPilot
 
+**Build-first phase:** the user has requested the entire market-gap roadmap before
+any further deployment. New operations work is local only. Track the remaining
+scope in [the completion register](docs/BUILD_PLAN.md) and see [local operations](docs/OPERATIONS.md).
+
 Explainable cash-flow forecasting and financial scenario planning for small businesses.
 
 [Open the deployed app](https://cashpilot-git-feature-saas-fo-bbd64b-shrashti-agarwals-projects.vercel.app) · [Model card](docs/MODEL_CARD.md) · [Hosted verification](docs/DEPLOYMENT_VERIFICATION.md) · [Decision Lab guide](docs/DECISION_LAB.md)
