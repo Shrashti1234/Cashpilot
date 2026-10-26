@@ -5,6 +5,7 @@ import { DisputeManagement } from './DisputeManagement';
 import { OperationsWorkspace } from './OperationsWorkspace';
 import { FinanceWorkspace } from './FinanceWorkspace';
 import { TeamSettings } from './TeamSettings';
+import { BusinessOverview,type WorkspaceSection } from './BusinessOverview';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
 
@@ -16,6 +17,8 @@ const labels = {
  hi:{back:'व्यवसाय बदलें',customers:'ग्राहक',subtitle:'इस व्यवसाय के ग्राहक प्रबंधित करें।',add:'ग्राहक जोड़ें',name:'ग्राहक का नाम',save:'ग्राहक सहेजें',cancel:'रद्द करें',empty:'अभी कोई ग्राहक नहीं है। पहला ग्राहक जोड़ें।',loading:'ग्राहक लोड हो रहे हैं…',failed:'ग्राहक लोड नहीं हो सके।',saveFailed:'ग्राहक सहेजा नहीं जा सका।',retry:'दोबारा कोशिश करें',readonly:'आपके पास केवल देखने की अनुमति है।'}
 };
 export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) {
+ const [overviewView,setOverviewView] = useState(true);
+ const [labInitialTab,setLabInitialTab] = useState<'lab'|'history'>('lab');
  const [invoiceView,setInvoiceView] = useState(false);
  const [labView,setLabView] = useState(false);
  const [disputeView,setDisputeView] = useState(false);
@@ -43,7 +46,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:t.failed);}
   finally{if(!signal?.aborted)setLoading(false);}
  }
- useEffect(()=>{const controller=new AbortController();void load(controller.signal);return()=>controller.abort();},[base,accessToken]);
+ useEffect(()=>{if(overviewView)return;const controller=new AbortController();void load(controller.signal);return()=>controller.abort();},[base,accessToken,overviewView]);
  async function submit(event:React.FormEvent){
   event.preventDefault();if(!canWrite||!name.trim()||busy)return;
   setBusy(true);setError('');
@@ -56,7 +59,12 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   }catch(e){setError(e instanceof Error?e.message:t.saveFailed);}
   finally{setBusy(false);}
  }
- if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setLabView(false)}/>;
+ function openSection(section:WorkspaceSection){
+  setOverviewView(false);setLabView(section==='decision'||section==='cash');setLabInitialTab(section==='cash'?'history':'lab');
+  setInvoiceView(section==='invoices');setOperationsView(section==='operations');setFinanceView(section==='finance');setDisputeView(section==='disputes');setTeamView(section==='team');
+ }
+ if(overviewView)return <BusinessOverview apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={onBack} onOpen={openSection}/>;
+ if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} initialTab={labInitialTab} onBack={()=>setLabView(false)}/>;
  if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
  if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;
  if(operationsView)return <OperationsWorkspace apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setOperationsView(false)}/>;
@@ -67,7 +75,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   <div className="workspace-content">
    <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>{t.back}</button>
    <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div><div className="workspace-actions"><button className="workspace-secondary" onClick={()=>setLabView(true)}><FlaskConical size={17}/>Decision Lab</button><button className="workspace-secondary" onClick={()=>setDisputeView(true)}>Disputes &amp; activity</button><button className="workspace-secondary" onClick={()=>setInvoiceView(true)}><FileText size={17}/>Invoices</button>{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div></div>
-   <div className="workspace-actions" style={{marginBottom:24}}><button className="workspace-secondary" onClick={()=>setOperationsView(true)}>Products, stock & documents</button><button className="workspace-secondary" onClick={()=>setFinanceView(true)}>Adjustments & statements</button>{['owner','admin'].includes(workspace.role)&&<button className="workspace-secondary" onClick={()=>setTeamView(true)}>Team & access</button>}</div>
+   <div className="workspace-actions" style={{marginBottom:24}}><button className="workspace-secondary" onClick={()=>setOverviewView(true)}>Business overview</button><button className="workspace-secondary" onClick={()=>setOperationsView(true)}>Products, stock & documents</button><button className="workspace-secondary" onClick={()=>setFinanceView(true)}>Adjustments & statements</button>{['owner','admin'].includes(workspace.role)&&<button className="workspace-secondary" onClick={()=>setTeamView(true)}>Team & access</button>}</div>
    {error&&<div className="error" role="alert">{error}<button onClick={()=>void load()} aria-label={t.retry}><RefreshCw size={17}/></button></div>}
    {loading?<div className="workspace-empty">{t.loading}</div>:customers.length===0?<div className="workspace-empty">{t.empty}</div>:<section className="panel"><div className="customer-list">{customers.map(customer=><div className="customer-row" key={customer.id}><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><span>{customer.name}</span></div>)}</div></section>}
    {!canWrite&&<p>{t.readonly}</p>}

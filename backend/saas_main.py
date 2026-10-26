@@ -23,6 +23,7 @@ from operations_api import router as operations_router
 from finance_api import router as finance_router
 from recurring_api import router as recurring_router
 from teams_api import router as teams_router
+from dashboard_api import router as dashboard_router
 
 
 @asynccontextmanager
@@ -78,6 +79,7 @@ app.include_router(operations_router)
 app.include_router(finance_router)
 app.include_router(recurring_router)
 app.include_router(teams_router)
+app.include_router(dashboard_router)
 
 
 def session_dependency():

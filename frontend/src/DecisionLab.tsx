@@ -6,7 +6,7 @@ import {inr,type Entry,type ModelReport,type ScenarioRequest,type Simulation} fr
 import './decision-lab.css';
 
 const defaults:ScenarioRequest={opening_balance_paise:1500000,horizon_days:30,use_demo:true,receipt_overrides:[],expense_overrides:[]};
-export function DecisionLab({apiUrl,accessToken,workspace,onBack}:{apiUrl:string;accessToken:string;workspace:BusinessWorkspace;onBack:()=>void}){
+export function DecisionLab({apiUrl,accessToken,workspace,onBack,initialTab='lab'}:{apiUrl:string;accessToken:string;workspace:BusinessWorkspace;onBack:()=>void;initialTab?:'lab'|'history'|'models'}){
  const [request,setRequest]=useState(defaults);
  const [result,setResult]=useState<Simulation|null>(null);
  const [model,setModel]=useState<ModelReport|null>(null);
@@ -20,7 +20,7 @@ export function DecisionLab({apiUrl,accessToken,workspace,onBack}:{apiUrl:string
  const [receiptDate,setReceiptDate]=useState('');
  const [expenseId,setExpenseId]=useState('');
  const [expenseDate,setExpenseDate]=useState('');
- const [tab,setTab]=useState<'lab'|'history'|'models'>('lab');
+ const [tab,setTab]=useState<'lab'|'history'|'models'>(initialTab);
  const [entryDate,setEntryDate]=useState(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata'}).format(new Date()));
  const [entryAmount,setEntryAmount]=useState('');
  const [entryDirection,setEntryDirection]=useState('out');

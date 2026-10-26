@@ -44,7 +44,9 @@ Placeholders and simulated successes do not satisfy this rule.
    supports a second approver and access revocation. Buyer portal, evidence,
    branches and broader approval rules remain pending.
 4. Bank reconciliation, payment and reminder integrations with actual sandboxes.
-5. Overview, aging, concentration, alerts and forecast monitoring.
+5. [Local overview, aging and concentration](BUSINESS_OVERVIEW.md) are implemented,
+   with recorded cash/expense charts, low-stock/review queues and factual attention
+   flags. Proactive shortage alerts and forecast monitoring remain pending.
 6. India-specific workbench, evidence exports and integration checks.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
