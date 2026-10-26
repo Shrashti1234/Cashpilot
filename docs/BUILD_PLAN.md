@@ -49,7 +49,10 @@ Placeholders and simulated successes do not satisfy this rule.
    preview/import, duplicate protection, exact one-to-one matching to existing
    ledger records, reversal history and matched-cash edit protection. Live bank
    ingestion, advanced settlements, payment and reminder provider integrations
-   still require actual sandboxes.
+   still require actual sandboxes. [Local contact preferences and reminder drafts](CONTACT_CONTROLS.md)
+   now include consent evidence/history, opt-outs, promise/dispute suppression,
+   customer-wide cooldowns and completed external-contact records. No delivery
+   provider is connected and no customer message has been sent.
 5. [Local overview, aging and concentration](BUSINESS_OVERVIEW.md) are implemented,
    with recorded cash/expense charts, low-stock/review queues and factual attention
    flags. Proactive shortage alerts and forecast monitoring remain pending.
@@ -57,8 +60,8 @@ Placeholders and simulated successes do not satisfy this rule.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 
-Current local checkpoint: 101 backend tests (including eight PostgreSQL checks),
-49 frontend tests and frontend build pass. CI remains unpushed.
+Current local checkpoint: 105 backend tests (including nine PostgreSQL checks),
+52 frontend tests and frontend build pass. CI remains unpushed.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the

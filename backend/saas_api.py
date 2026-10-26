@@ -22,6 +22,8 @@ from disputes import InvoiceDispute
 from audit import record_event
 from operations import BusinessProfile
 from promises import unfulfilled_promises
+from contacts import last_contacts
+from business_clock import india_today
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
 
@@ -136,7 +138,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
     try:
         invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
         if not invoices_for_org:
-            return collections_plan([], as_of=date.today())
+            return collections_plan([], as_of=india_today())
         ids = [item.id for item in invoices_for_org]
         customers_by_id = {
             item.id: item.name for item in db.scalars(select(Customer).where(
@@ -144,6 +146,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
         }
         positions = invoice_positions(db, organization_id, invoices_for_org)
         promises = unfulfilled_promises(db, organization_id)
+        contacted = last_contacts(db, organization_id)
         disputed_ids = set(db.scalars(select(InvoiceDispute.invoice_id).where(
             InvoiceDispute.organization_id == organization_id,
             InvoiceDispute.invoice_id.in_(ids),
@@ -154,11 +157,12 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
                        due_date=invoice.due_date,
                        outstanding_paise=positions[invoice.id]['outstanding_paise'],
                        disputed=invoice.id in disputed_ids,
+                       last_contacted=contacted.get(invoice.customer_id),
                        promise_date=promises.get(invoice.id,{}).get('date'),
                        promise_amount_paise=promises.get(invoice.id,{}).get('amount_paise'))
             for invoice in invoices_for_org
         ]
-        return collections_plan(receivables, as_of=date.today())
+        return collections_plan(receivables, as_of=india_today())
     except TenantAccessDenied:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -169,7 +173,7 @@ def invoice_summary(organization_id: str, identity: Identity, db: Db):
     try:
         invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
         positions = invoice_positions(db, organization_id, invoices_for_org)
-        today = date.today()
+        today = india_today()
         total = sum(item.total_paise for item in invoices_for_org)
         paid = sum(p['paid_paise'] for p in positions.values())
         overdue = sum(

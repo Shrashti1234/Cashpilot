@@ -27,6 +27,7 @@ from teams_api import router as teams_router
 from dashboard_api import router as dashboard_router
 from buyer_api import router as buyer_router
 from banking_api import router as banking_router
+from contacts_api import router as contacts_router
 from api_security import safe_validation_error
 
 
@@ -96,6 +97,7 @@ app.include_router(teams_router)
 app.include_router(dashboard_router)
 app.include_router(buyer_router)
 app.include_router(banking_router)
+app.include_router(contacts_router)
 
 
 def session_dependency():

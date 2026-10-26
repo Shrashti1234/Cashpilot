@@ -7,6 +7,7 @@ import { FinanceWorkspace } from './FinanceWorkspace';
 import { TeamSettings } from './TeamSettings';
 import { BuyerAccessManager } from './BuyerAccessManager';
 import { BankReconciliation } from './BankReconciliation';
+import { ContactControls } from './ContactControls';
 import { BusinessOverview,type WorkspaceSection } from './BusinessOverview';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
@@ -29,6 +30,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  const [teamView,setTeamView] = useState(false);
  const [buyerView,setBuyerView] = useState(false);
  const [bankView,setBankView] = useState(false);
+ const [contactView,setContactView] = useState(false);
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -64,6 +66,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   finally{setBusy(false);}
  }
  function openSection(section:WorkspaceSection){
+  setContactView(section==='contacts');
   setBankView(section==='banking');
   setBuyerView(section==='buyers');
   setOverviewView(false);setLabView(section==='decision'||section==='cash');setLabInitialTab(section==='cash'?'history':'lab');
@@ -72,6 +75,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  if(overviewView)return <BusinessOverview apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={onBack} onOpen={openSection}/>;
  if(buyerView)return <BuyerAccessManager apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setBuyerView(false)}/>;
  if(bankView)return <BankReconciliation apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setBankView(false)}/>;
+ if(contactView)return <ContactControls apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setContactView(false)}/>;
  if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} initialTab={labInitialTab} onBack={()=>setLabView(false)}/>;
  if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
  if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;
