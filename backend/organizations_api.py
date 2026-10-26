@@ -51,7 +51,7 @@ def my_organizations(identity: Identity, db: Db):
     rows = db.execute(
         select(Organization, Membership.role)
         .join(Membership, Membership.organization_id == Organization.id)
-        .where(Membership.user_id == identity)
+        .where(Membership.user_id == identity, Membership.active.is_(True))
         .order_by(Organization.name)
     ).all()
     return {"organizations": [organization_out(org, role) for org, role in rows]}

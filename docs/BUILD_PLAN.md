@@ -16,7 +16,7 @@ Placeholders and simulated successes do not satisfy this rule.
 
 | Package | Required work | Current state |
 | --- | --- | --- |
-| Identity and organizations | Auth, roles, membership administration, invitations, branches | Auth/onboarding implemented; administration and branches pending |
+| Identity and organizations | Auth, roles, membership administration, invitations, branches | Auth/onboarding and local account-bound invitations, roles, revocation and last-owner protection implemented; branches pending |
 | Financial operations | Products, estimates, invoice items, tax workbench, notes, recurring invoices, refunds, expenses, purchase orders, stock, statements and imports/exports | Basic customers/invoices/payments/cash imports implemented; extended operations in progress |
 | Collections | Aging, promises, consent/cooldown reminders, payment links, reconciliation, buyer portal, evidence and analytics | Priorities and supplier dispute review implemented; remaining workflows pending |
 | Cash intelligence | Scheduled and learned forecasts, scenarios, alerts, forecast-versus-actual, concentration, seasonality, drift | Trained synthetic models and Decision Lab implemented; operational analytics pending |
@@ -40,7 +40,9 @@ Placeholders and simulated successes do not satisfy this rule.
    [Recurring invoice draft series](RECURRING_DRAFTS.md), manual generation and a job
    entrypoint are also implemented locally. An installed scheduler, statutory GST
    note generation and actual payment-provider refunds remain pending.
-3. Collaboration and approvals; buyer portal and evidence.
+3. Collaboration and approvals: [local team administration](TEAM_ACCESS.md) now
+   supports a second approver and access revocation. Buyer portal, evidence,
+   branches and broader approval rules remain pending.
 4. Bank reconciliation, payment and reminder integrations with actual sandboxes.
 5. Overview, aging, concentration, alerts and forecast monitoring.
 6. India-specific workbench, evidence exports and integration checks.

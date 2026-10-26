@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Building2, Plus, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { languageNames, readLanguage, type Language } from './i18n';
+import { JoinBusiness } from './JoinBusiness';
 
 type Workspace = { id:string; name:string; mode:'micro'|'b2b'; role:string };
 type Props = { apiUrl:string; accessToken:string; onSelect:(workspace:Workspace)=>void };
@@ -50,7 +51,7 @@ export function WorkspaceOnboarding({apiUrl,accessToken,onSelect}:Props) {
   <div className="workspace-content"><div className="workspace-heading"><div><span className="eyebrow">BUSINESS WORKSPACES</span><h1>{t.title}</h1><p>{t.sub}</p></div><button className="primary" onClick={()=>setCreating(true)}><Plus size={17}/>{t.create}</button></div>
   {error&&<div className="error" role="alert">{error}<button onClick={()=>void load()} aria-label={t.retry}><RefreshCw size={17}/></button></div>}
   {loading?<div className="workspace-empty">{t.loading}</div>:workspaces.length===0?<div className="workspace-empty">{t.empty}</div>:<div className="workspace-grid">{workspaces.map(workspace=><button className="workspace-card" key={workspace.id} onClick={()=>onSelect(workspace)}><span className="workspace-card-icon"><Building2 size={22}/></span><strong>{workspace.name}</strong><small>{workspace.mode==='micro'?t.micro:t.b2b} · {workspace.role}</small></button>)}</div>}
-  <p className="workspace-security"><ShieldCheck size={15}/>{t.security}</p></div>
+  <p className="workspace-security"><ShieldCheck size={15}/>{t.security}</p><JoinBusiness apiUrl={apiUrl} accessToken={accessToken} onJoined={onSelect}/></div>
   {creating&&<div className="overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCreating(false)}}><form className="dialog" onSubmit={submit}><div className="dialog-head"><h2>{t.create}</h2><button type="button" className="icon-button" onClick={()=>setCreating(false)} aria-label={t.cancel}><X size={20}/></button></div><label>{t.name}<input autoFocus required minLength={1} maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></label><label>{t.mode}<select value={mode} onChange={e=>setMode(e.target.value as 'micro'|'b2b')}><option value="micro">{t.micro}</option><option value="b2b">{t.b2b}</option></select></label><button disabled={busy} className="primary submit">{busy?'…':t.save}</button></form></div>}
  </div>;
 }

@@ -7,8 +7,8 @@ from datetime import date, datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import (
-    BigInteger, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Integer, String,
-    UniqueConstraint, select, func
+    BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Integer, String,
+    UniqueConstraint, select, func, true
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -34,6 +34,7 @@ class Membership(SaaSBase):
     organization_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(200), primary_key=True)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
     __table_args__ = (
         ForeignKeyConstraint(["organization_id"], ["saas_organizations.id"]),
         CheckConstraint("role IN ('owner', 'admin', 'accountant', 'viewer')"),
@@ -150,7 +151,7 @@ class TenantAccessDenied(PermissionError):
 
 def require_member(db: Session, user_id: str, organization_id: str, *, write: bool = False) -> Membership:
     membership = db.get(Membership, (organization_id, user_id))
-    if membership is None or (write and membership.role == "viewer"):
+    if membership is None or not membership.active or (write and membership.role == "viewer"):
         raise TenantAccessDenied("Not authorized for this organization")
     return membership
 

@@ -11,6 +11,7 @@ import cash_ledger  # noqa: F401
 import audit  # noqa: F401
 import operations  # noqa: F401
 import recurring  # noqa: F401
+import teams  # noqa: F401
 
 
 def test_migration_matches_orm_columns(tmp_path, monkeypatch):
