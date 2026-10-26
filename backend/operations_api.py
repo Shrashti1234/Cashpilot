@@ -312,7 +312,7 @@ def issue_document(organization_id: str, document_id: str, payload: IssueInput, 
             return document_out(d)
         if d.status not in {'draft', 'approved'}:
             raise ValueError('This document cannot be issued')
-        profile = db.get(BusinessProfile, organization_id)
+        profile = db.scalar(select(BusinessProfile).where(BusinessProfile.organization_id == organization_id).with_for_update())
         if profile.require_approval and (d.status != 'approved' or not d.approved_by or d.approved_by == d.created_by):
             raise ValueError('Independent approval is required by business policy')
         if not payload.tax_reviewed:

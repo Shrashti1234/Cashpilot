@@ -128,6 +128,7 @@ def test_independent_approval_and_read_only_tenant_boundaries(api):
     c, who, _ = api
     product = setup(c)
     assert c.post(BASE + '/profile', json={**PROFILE, 'require_approval': True}).status_code == 200
+    assert c.post('/api/v1/organizations/a/invoices', json={'customer_id':'ca','invoice_number':'BYPASS','due_date':str(date.today()),'total_paise':100}).status_code == 422
     doc, body = draft(c, product, 'estimate', 'EST-1')
     path = BASE + '/documents/' + doc['id']
     assert c.post(path + '/approve').status_code == 422

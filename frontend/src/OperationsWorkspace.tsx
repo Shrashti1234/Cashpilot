@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {ArrowLeft,Boxes} from 'lucide-react';
 import type {BusinessWorkspace} from './CustomerManagement';
 import {DocumentWorkbench} from './DocumentWorkbench';
+import {RecurringDocuments,type RecurringSeries} from './RecurringDocuments';
 import {money,scaled,download,csvCell,type Movement,type Product,type Profile,type TradeDoc} from './operationsTypes';
 import './operations.css';
 
@@ -11,7 +12,8 @@ const emptyProfile:Profile={legal_name:'',address:'',gstin:'',state_code:'',requ
 const emptyProduct={sku:'',name:'',unit:'NOS',hsn_sac:'',price:'',rate:'0',track:true,reorder:'0',active:true};
 
 export function OperationsWorkspace({apiUrl,accessToken,workspace,onBack}:Props){
- const [tab,setTab]=useState<'documents'|'products'|'stock'|'profile'>('documents');
+ const [tab,setTab]=useState<'documents'|'products'|'stock'|'profile'|'recurring'>('documents');
+ const [rules,setRules]=useState<RecurringSeries[]>([]);
  const [profile,setProfile]=useState<Profile|null>(null),[profileForm,setProfileForm]=useState(emptyProfile);
  const [products,setProducts]=useState<Product[]>([]),[documents,setDocuments]=useState<TradeDoc[]>([]),[movements,setMovements]=useState<Movement[]>([]);
  const [customers,setCustomers]=useState<{id:string;name:string}[]>([]);
@@ -24,11 +26,11 @@ export function OperationsWorkspace({apiUrl,accessToken,workspace,onBack}:Props)
   const controller=new AbortController();let active=true;setBusy(true);setError('');
   const timer=window.setTimeout(()=>controller.abort(),90000);
   async function load(){try{
-   const paths=['/operations/profile','/operations/products','/operations/documents','/operations/stock','/customers'];
+   const paths=['/operations/profile','/operations/products','/operations/documents','/operations/stock','/customers','/operations/recurring'];
    const results=await Promise.all(paths.map(path=>fetch(base+path,{headers:{Authorization:`Bearer ${accessToken}`},signal:controller.signal})));
    if(results.some(r=>!r.ok))throw new Error('Could not load business operations. Please retry.');
-   const [p,c,d,s,b]=await Promise.all(results.map(r=>r.json()));
-   if(active){setProfile(p.profile);setProfileForm(p.profile??emptyProfile);setProducts(c.products);setDocuments(d.documents);setMovements(s.movements);setCustomers(b.customers);}
+   const [p,c,d,s,b,r]=await Promise.all(results.map(r=>r.json()));
+   if(active){setProfile(p.profile);setProfileForm(p.profile??emptyProfile);setProducts(c.products);setDocuments(d.documents);setMovements(s.movements);setCustomers(b.customers);setRules(r.rules);}
   }catch(e){if(active)setError(controller.signal.aborted?'The request timed out. Please retry.':e instanceof Error?e.message:'Could not load operations.');}
   finally{window.clearTimeout(timer);if(active)setBusy(false);}}
   void load();return()=>{active=false;controller.abort();window.clearTimeout(timer);};
@@ -47,9 +49,10 @@ export function OperationsWorkspace({apiUrl,accessToken,workspace,onBack}:Props)
  function exportCatalogue(){const rows=[['sku','name','unit','price_inr','tax_percent','stock_units'],...products.map(p=>[p.sku,p.name,p.unit,(p.unit_price_paise/100).toFixed(2),(p.tax_rate_bps/100).toFixed(2),p.track_stock?(p.stock_milliunits/1000).toFixed(3):'not tracked'])];download('catalogue.csv',rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),'text/csv');}
  return <div className="workspace-screen"><div className="workspace-top"><div className="workspace-brand"><Boxes size={24}/>CashPilot</div><span className="eyebrow">{workspace.name}</span></div><main className="decision-content ops-content">
   <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>Back to customers</button><div className="workspace-heading"><div><span className="eyebrow">FROM QUOTE TO CASH</span><h1>Business operations</h1><p>Products, stock, estimates, purchase orders and line-item invoices.</p></div></div>
-  <fieldset disabled={busy} className="ops-fieldset"><nav className="lab-tabs" aria-label="Business operations">{(['documents','products','stock','profile'] as const).map(t=><button key={t} className={tab===t?'active':''} onClick={()=>{setTab(t);setError('');}}>{({documents:'Documents',products:'Products',stock:'Stock ledger',profile:'Business profile'})[t]}</button>)}</nav>
+  <fieldset disabled={busy} className="ops-fieldset"><nav className="lab-tabs" aria-label="Business operations">{(['documents','products','stock','recurring','profile'] as const).map(t=><button key={t} className={tab===t?'active':''} onClick={()=>{setTab(t);setError('');}}>{({documents:'Documents',products:'Products',stock:'Stock ledger',recurring:'Recurring',profile:'Business profile'})[t]}</button>)}</nav>
   {error&&<div role="alert" className="error">{error}<button onClick={()=>setRevision(v=>v+1)}>Reload</button></div>}{notice&&<p role="status" className="lab-notice">{notice}</p>}{busy&&<p role="status" className="lab-loading">Loading business records…</p>}
   {tab==='documents'&&<DocumentWorkbench {...{documents,products,customers,profile,busy,canWrite,canAdmin,write}}/>}
+  {tab==='recurring'&&<RecurringDocuments {...{documents,rules,busy,canWrite,canAdmin,write}}/>}
   {tab==='profile'&&<section className="panel"><h2>Supplier details & approval policy</h2><p>Snapshots are stored with every document. GSTIN checks cover format and state prefix, not registry status.</p><form className="lab-ledger-form" onSubmit={e=>{e.preventDefault();void write('/profile',profileForm);}}>
    <label>Legal business name<input required maxLength={160} disabled={!canAdmin} value={profileForm.legal_name} onChange={e=>setProfileForm({...profileForm,legal_name:e.target.value})}/></label><label>Business address<input required maxLength={1000} disabled={!canAdmin} value={profileForm.address} onChange={e=>setProfileForm({...profileForm,address:e.target.value})}/></label><label>State / UT code<input required pattern="[0-9]{2}" placeholder="e.g. 27" disabled={!canAdmin} value={profileForm.state_code} onChange={e=>setProfileForm({...profileForm,state_code:e.target.value})}/></label><label>GSTIN (if registered)<input maxLength={15} disabled={!canAdmin} value={profileForm.gstin} onChange={e=>setProfileForm({...profileForm,gstin:e.target.value.toUpperCase()})}/></label><label className="ops-checkbox"><input type="checkbox" disabled={!canAdmin} checked={profileForm.require_approval} onChange={e=>setProfileForm({...profileForm,require_approval:e.target.checked})}/>Require a different owner/admin to approve before issue</label>{canAdmin&&<button disabled={busy} className="primary">Save business profile</button>}
   </form>{!canAdmin&&<p>Only owners and administrators can change the profile or approval policy.</p>}</section>}

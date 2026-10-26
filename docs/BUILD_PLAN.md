@@ -36,8 +36,10 @@ Placeholders and simulated successes do not satisfy this rule.
    and the remaining financial lifecycle still need completion.
 2. Complete financial lifecycle: **internal credit/debit memos, records of completed
    external refunds, customer statements and downstream adjusted balances are
-   implemented locally**. See [ledger verification](FINANCIAL_LEDGER.md). Recurrence,
-   statutory GST note generation and actual payment-provider refunds remain pending.
+   implemented locally**. See [ledger verification](FINANCIAL_LEDGER.md).
+   [Recurring invoice draft series](RECURRING_DRAFTS.md), manual generation and a job
+   entrypoint are also implemented locally. An installed scheduler, statutory GST
+   note generation and actual payment-provider refunds remain pending.
 3. Collaboration and approvals; buyer portal and evidence.
 4. Bank reconciliation, payment and reminder integrations with actual sandboxes.
 5. Overview, aging, concentration, alerts and forecast monitoring.

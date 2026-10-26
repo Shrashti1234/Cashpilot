@@ -21,6 +21,7 @@ from intelligence_api import router as intelligence_router
 from disputes_api import router as disputes_router
 from operations_api import router as operations_router
 from finance_api import router as finance_router
+from recurring_api import router as recurring_router
 
 
 @asynccontextmanager
@@ -74,6 +75,7 @@ app.include_router(intelligence_router)
 app.include_router(disputes_router)
 app.include_router(operations_router)
 app.include_router(finance_router)
+app.include_router(recurring_router)
 
 
 def session_dependency():

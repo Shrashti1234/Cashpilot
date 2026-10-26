@@ -11,7 +11,7 @@ const props={apiUrl:'https://api.test',accessToken:'fixture-token',workspace:{id
 const fetchMock=vi.fn();
 beforeEach(()=>{
  vi.stubGlobal('fetch',fetchMock);fetchMock.mockReset();
- fetchMock.mockImplementation(async(url:string)=>({ok:true,json:async()=>url.endsWith('/profile')?{profile}:url.endsWith('/products')?{products:[]}:url.endsWith('/documents')?{documents:[]}:url.endsWith('/stock')?{movements:[]}:{customers:[]}}));
+ fetchMock.mockImplementation(async(url:string)=>({ok:true,json:async()=>url.endsWith('/profile')?{profile}:url.endsWith('/products')?{products:[]}:url.endsWith('/documents')?{documents:[]}:url.endsWith('/stock')?{movements:[]}:url.endsWith('/recurring')?{rules:[]}:{customers:[]}}));
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 

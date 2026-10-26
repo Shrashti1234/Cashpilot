@@ -20,6 +20,7 @@ from sqlalchemy import select
 from collections_intelligence import Receivable, collections_plan
 from disputes import InvoiceDispute
 from audit import record_event
+from operations import BusinessProfile
 
 router = APIRouter(prefix="/api/v1/organizations/{organization_id}", tags=["invoices"])
 
@@ -102,6 +103,10 @@ def add_customer(organization_id: str, payload: CustomerCreate, identity: Identi
 @router.post("/invoices", status_code=201)
 def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity, db: Db):
     try:
+        require_member(db, identity, organization_id, write=True)
+        profile = db.scalar(select(BusinessProfile).where(BusinessProfile.organization_id == organization_id).with_for_update())
+        if profile and profile.require_approval:
+            raise HTTPException(422, 'Independent approval is enabled. Prepare and approve an invoice in Products, stock & documents.')
         invoice = create_invoice(
             db, user_id=identity, organization_id=organization_id,
             customer_id=payload.customer_id, invoice_number=payload.invoice_number,
