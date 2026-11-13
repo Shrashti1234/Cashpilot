@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "git": {
+    "deploymentEnabled": {
+      "feature/saas-foundation": false
+    }
+  },
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
