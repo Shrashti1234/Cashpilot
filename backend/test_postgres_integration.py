@@ -169,6 +169,21 @@ def test_postgres_financial_approval_posts_once_with_immutable_request_payload(p
         assert invoice_positions(db,pg['org'],[db.get(Invoice,inv)])[inv]['outstanding_paise']==9000
 
 
+def test_postgres_source_tax_snapshots_remain_immutable_through_approval_and_issue(pg):
+    from operations_api import approve_document
+    from tax_register_api import tax_register
+    reviewer=str(uuid4())
+    with Session(pg['runtime']) as db:
+        db.add(Membership(organization_id=pg['org'],user_id=reviewer,role='admin',active=True));profile=db.get(BusinessProfile,pg['org']);profile.require_approval=True;profile.gstin='27ABCDE1234F1Z5';db.commit()
+        payload=DocumentInput(kind='invoice',number='PG-TAX',customer_id=pg['customer'],issue_date=today(),due_date=today(),party={'name':'Synthetic buyer','address':'Fixture address','state_code':'27','place_of_supply':'27','gstin':''},lines=[{'description':'Synthetic service','hsn_sac':'998313','unit':'NOS','quantity_milliunits':1000,'unit_price_paise':10000,'discount_paise':0,'tax_rate_bps':1800,'cess_rate_bps':0}])
+        doc=add_document(pg['org'],payload,pg['user'],db)
+        approve_document(pg['org'],doc['id'],reviewer,db)
+        issue_document(pg['org'],doc['id'],IssueInput(tax_reviewed=True),pg['user'],db)
+        report=tax_register(pg['org'],today(),today(),pg['user'],db,None);assert report['totals']['total_paise']==11800 and report['totals']['sgst_paise']==900
+        assert not db.scalar(text("SELECT has_column_privilege(current_user,'saas_trade_documents','lines','UPDATE') OR has_column_privilege(current_user,'saas_trade_documents','supplier','UPDATE') OR has_column_privilege(current_user,'saas_trade_documents','issue_date','UPDATE')"))
+        assert db.scalar(text("SELECT has_column_privilege(current_user,'saas_trade_documents','status','UPDATE')"))
+
+
 def test_postgres_concurrent_refunds_cannot_spend_the_same_customer_credit(pg):
     inv=new_invoice(pg)
     with Session(pg['runtime']) as db:

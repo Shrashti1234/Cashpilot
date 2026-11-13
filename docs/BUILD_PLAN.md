@@ -64,7 +64,9 @@ Placeholders and simulated successes do not satisfy this rule.
    after record changes, and supports optional conditional cash-threshold attention.
    Installed scheduling, notification delivery, statistical drift and real-world
    validation remain pending.
-6. India-specific workbench, evidence exports and integration checks.
+6. The local recorded tax register exports issued invoice snapshots by period and
+   supplier GSTIN. Browser/CSV and 13 targeted PostgreSQL checks passed. Statutory
+   notes, portal filing, IRN and e-way-bill integration remain pending.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 

@@ -31,6 +31,7 @@ from contacts_api import router as contacts_router
 from forecast_journal_api import router as forecast_journal_router
 from evidence_api import router as evidence_router
 from financial_approvals_api import router as financial_approvals_router
+from tax_register_api import router as tax_register_router
 from api_security import safe_validation_error
 
 
@@ -104,6 +105,7 @@ app.include_router(contacts_router)
 app.include_router(forecast_journal_router)
 app.include_router(evidence_router)
 app.include_router(financial_approvals_router)
+app.include_router(tax_register_router)
 
 
 def session_dependency():
