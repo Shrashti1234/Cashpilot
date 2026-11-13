@@ -14,10 +14,11 @@
    a conflict, not an overwrite. Workspaces requiring invoice approval cannot use this
    import yet. Opening receivables stay outside issued-invoice totals and historical
    payment-timing training inputs.
-5. Open **Collections worklist** to review the top 100 open balances. Owners and admins
+5. Open **Collections worklist** to search and page through open balances. Owners and admins
    can assign work; accountants can claim unassigned items and update their own.
    The list shows existing dispute, promise and contact-cooldown guidance and filters
-   for owned, due or unassigned items. It sends no message.
+   for owned, due or unassigned items across the workspace. Follow-ups due now are
+   shown first, followed by invoice due date. It sends no message.
 
 This checkpoint does not parse native Tally or XLSX files, write vouchers back to
 Tally, or connect a payment or messaging provider. Next pilot acceptance gate:

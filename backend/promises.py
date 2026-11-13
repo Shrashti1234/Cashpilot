@@ -39,12 +39,15 @@ def received_since(db,p):
         Payment.organization_id==p.organization_id,Payment.invoice_id==p.invoice_id,Payment.created_at>=p.created_at))
 
 
-def unfulfilled_promises(db,organization_id):
-    rows=db.execute(select(PaymentPromise.invoice_id,PaymentPromise.promised_date,PaymentPromise.amount_paise).outerjoin(
+def unfulfilled_promises(db,organization_id,invoice_ids=None):
+    query=select(PaymentPromise.invoice_id,PaymentPromise.promised_date,PaymentPromise.amount_paise).outerjoin(
         Payment,and_(Payment.organization_id==PaymentPromise.organization_id,Payment.invoice_id==PaymentPromise.invoice_id,
                      Payment.created_at>=PaymentPromise.created_at)).where(PaymentPromise.organization_id==organization_id,
         PaymentPromise.status=='pending').group_by(PaymentPromise.id,PaymentPromise.invoice_id,PaymentPromise.promised_date,
-        PaymentPromise.amount_paise).having(func.coalesce(func.sum(Payment.amount_paise),0)<PaymentPromise.amount_paise))
+        PaymentPromise.amount_paise).having(func.coalesce(func.sum(Payment.amount_paise),0)<PaymentPromise.amount_paise)
+    if invoice_ids is not None:
+        query=query.where(PaymentPromise.invoice_id.in_(invoice_ids))
+    rows=db.execute(query)
     return {r.invoice_id:{'date':r.promised_date,'amount_paise':r.amount_paise} for r in rows}
 
 
