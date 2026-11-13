@@ -108,7 +108,7 @@ def tenant_inputs(db,organization_id,as_of):
             total+=p.amount_paise
             if total>=inv.total_paise and settled is None: settled=payment_day(p.created_at)
         position=positions[inv.id]
-        if settled and not any(position[k] for k in ['credit_paise','debit_paise','refunded_paise']):
+        if settled and not inv.opening_receivable and not any(position[k] for k in ['credit_paise','debit_paise','refunded_paise']):
             history.setdefault(inv.customer_id,[]).append({'due_date':inv.due_date,'paid_date':settled})
         if position['outstanding_paise']>0: outstanding.append((inv,position))
     if len(outstanding)>200: raise HTTPException(422,'This release supports up to 200 outstanding invoices in a simulation')

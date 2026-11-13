@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Integer, String,
-    UniqueConstraint, select, func, true
+    UniqueConstraint, select, func, true, false
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -60,6 +60,7 @@ class Invoice(SaaSBase):
     invoice_number: Mapped[str] = mapped_column(String(64), nullable=False)
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
     total_paise: Mapped[int] = mapped_column(Integer, nullable=False)
+    opening_receivable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
     __table_args__ = (
         ForeignKeyConstraint(["organization_id", "customer_id"], ["saas_customers.organization_id", "saas_customers.id"]),
         UniqueConstraint("organization_id", "invoice_number"),

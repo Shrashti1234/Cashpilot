@@ -12,6 +12,8 @@ import { ForecastJournal } from './ForecastJournal';
 import { InvoiceEvidence } from './InvoiceEvidence';
 import { FinancialApprovals } from './FinancialApprovals';
 import { TaxRegister } from './TaxRegister';
+import { ReceivableImport } from './ReceivableImport';
+import { CollectionsWorklist } from './CollectionsWorklist';
 import { BusinessOverview,type WorkspaceSection } from './BusinessOverview';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
@@ -39,6 +41,8 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  const [evidenceView,setEvidenceView] = useState(false);
  const [approvalsView,setApprovalsView] = useState(false);
  const [taxView,setTaxView] = useState(false);
+ const [importView,setImportView] = useState(false);
+ const [collectionsView,setCollectionsView] = useState(false);
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -74,6 +78,8 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   finally{setBusy(false);}
  }
  function openSection(section:WorkspaceSection){
+  setCollectionsView(section==='collections');
+  setImportView(section==='import');
   setTaxView(section==='tax');
   setApprovalsView(section==='approvals');
   setEvidenceView(section==='evidence');
@@ -92,6 +98,8 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
  if(evidenceView)return <InvoiceEvidence apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setEvidenceView(false)}/>;
  if(approvalsView)return <FinancialApprovals apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setApprovalsView(false)}/>;
  if(taxView)return <TaxRegister apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setTaxView(false)}/>;
+ if(importView)return <ReceivableImport apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>{setImportView(false);setOverviewView(true);}}/>;
+ if(collectionsView)return <CollectionsWorklist apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>{setCollectionsView(false);setOverviewView(true);}}/>;
  if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} initialTab={labInitialTab} onBack={()=>setLabView(false)}/>;
  if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
  if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;

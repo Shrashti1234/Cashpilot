@@ -19,6 +19,7 @@ import banking
 import contacts
 import forecast_journal
 import financial_approvals
+import collection_tasks
 from finance_api import RefundInput,add_refund
 from intelligence_api import today
 from operations import BusinessProfile,Product,StockMovement,TradeDocument,post_stock,stock_balance
@@ -69,6 +70,21 @@ def new_invoice(pg,number='PG-INV'):
         row=create_invoice(db,user_id=pg['user'],organization_id=pg['org'],customer_id=pg['customer'],
                            invoice_number=number,due_date=today(),total_paise=10000)
         db.commit();return row.id
+
+
+def test_runtime_import_and_follow_up_flow(pg):
+    from receivable_import_api import MappedInput, CommitInput, preview, commit
+    from collection_worklist_api import Assignment, assign, worklist
+    org, actor = pg['org'], pg['user']
+    file = MappedInput(content='customer,reference,due,amount\nSynthetic fixture buyer,PILOT-1,2026-10-01,25.55',
+                       columns={'customer':'customer','reference':'reference','due':'due','amount':'amount'})
+    with Session(pg['runtime']) as db:
+        plan = preview(org, file, actor, db)
+        assert commit(org, CommitInput(**file.model_dump(), preview_digest=plan['preview_digest']), actor, db)['imported'] == 1
+        row = worklist(org, actor, db)['actions'][0]
+        assert row['outstanding_paise'] == 2555
+        assign(org, row['invoice_id'], Assignment(assignee=actor, follow_up=today()), actor, db)
+        assert worklist(org, actor, db)['actions'][0]['task']['assignee'] == actor
 
 
 def parallel(function):

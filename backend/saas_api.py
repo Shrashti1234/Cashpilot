@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from auth_identity import get_verified_identity
 from saas_domain import (
     Customer, Invoice, Payment, TenantAccessDenied, create_invoice, list_invoices,
-    record_payment, require_member, invoice_positions,
+    record_payment, require_member, invoice_positions, lock_organization,
 )
 from sqlalchemy import select
 from collections_intelligence import Receivable, collections_plan
@@ -61,6 +61,7 @@ def invoice_out(invoice: Invoice) -> dict:
         "invoice_number": invoice.invoice_number,
         "due_date": invoice.due_date.isoformat(),
         "total_paise": invoice.total_paise,
+        "opening_receivable": invoice.opening_receivable,
     }
 
 
@@ -90,6 +91,7 @@ def customers(organization_id: str, identity: Identity, db: Db):
 def add_customer(organization_id: str, payload: CustomerCreate, identity: Identity, db: Db):
     try:
         require_member(db, identity, organization_id, write=True)
+        lock_organization(db, organization_id)
         if not payload.name.strip():
             raise HTTPException(status_code=422, detail="Customer name is required")
         customer = Customer(organization_id=organization_id, name=payload.name.strip())
@@ -134,6 +136,10 @@ def add_invoice(organization_id: str, payload: InvoiceCreate, identity: Identity
 
 @router.get("/collections/plan")
 def collection_recommendations(organization_id: str, identity: Identity, db: Db):
+    return build_collections_plan(organization_id, identity, db)
+
+
+def build_collections_plan(organization_id: str, identity: str, db, limit=10):
     """Explainable, human-reviewed recommendations; never contacts customers."""
     try:
         invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
@@ -162,7 +168,7 @@ def collection_recommendations(organization_id: str, identity: Identity, db: Db)
                        promise_amount_paise=promises.get(invoice.id,{}).get('amount_paise'))
             for invoice in invoices_for_org
         ]
-        return collections_plan(receivables, as_of=india_today())
+        return collections_plan(receivables, as_of=india_today(), max_actions=limit)
     except TenantAccessDenied:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -174,7 +180,7 @@ def invoice_summary(organization_id: str, identity: Identity, db: Db):
         invoices_for_org = list_invoices(db, user_id=identity, organization_id=organization_id)
         positions = invoice_positions(db, organization_id, invoices_for_org)
         today = india_today()
-        total = sum(item.total_paise for item in invoices_for_org)
+        total = sum(item.total_paise for item in invoices_for_org if not item.opening_receivable)
         paid = sum(p['paid_paise'] for p in positions.values())
         overdue = sum(
             positions[item.id]['outstanding_paise']
@@ -184,7 +190,7 @@ def invoice_summary(organization_id: str, identity: Identity, db: Db):
         return {"total_invoiced_paise": total, "paid_paise": paid,
                 "outstanding_paise": sum(p['outstanding_paise'] for p in positions.values()), "overdue_paise": overdue,
                 "invoice_count": len(invoices_for_org),
-                "adjusted_invoiced_paise": sum(p['effective_total_paise'] for p in positions.values()),
+                "adjusted_invoiced_paise": sum(positions[i.id]['effective_total_paise'] for i in invoices_for_org if not i.opening_receivable),
                 "customer_credit_paise": sum(p['credit_balance_paise'] for p in positions.values()),
                 "refunded_paise": sum(p['refunded_paise'] for p in positions.values())}
     except TenantAccessDenied:

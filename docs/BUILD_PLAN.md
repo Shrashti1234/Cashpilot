@@ -70,8 +70,12 @@ Placeholders and simulated successes do not satisfy this rule.
 7. Localization, offline/PWA and enterprise operations.
 8. Full local acceptance run and review. Deployment is a separate approval.
 
-Current local checkpoint: 119 backend tests (including twelve PostgreSQL checks),
-61 frontend tests and frontend build pass. CI remains unpushed.
+Pilot priority: [mapped receivables import and collections worklist](PILOT_WORKFLOW.md)
+are the first implementation slice. GitHub feature branch checkpoints may be
+pushed; automatic Vercel deployment is disabled for that branch.
+
+Current local checkpoint: 128 backend tests (including fourteen PostgreSQL checks),
+64 frontend tests and frontend build pass. GitHub CI is separate from local verification.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the

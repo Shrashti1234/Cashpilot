@@ -15,7 +15,7 @@ from auth_identity import get_verified_identity
 from intelligence_api import today
 from operations import BusinessProfile, Product, StockMovement, TradeDocument, calculate_lines, post_stock, stock_balance
 from saas_api import get_saas_session
-from saas_domain import Customer, TenantAccessDenied, create_invoice, require_member
+from saas_domain import Customer, TenantAccessDenied, create_invoice, require_member, lock_organization
 
 router = APIRouter(prefix='/api/v1/organizations/{organization_id}/operations', tags=['operations'])
 Identity = Annotated[str, Depends(get_verified_identity)]
@@ -183,6 +183,7 @@ def get_profile(organization_id: str, identity: Identity, db: Db):
 def save_profile(organization_id: str, payload: ProfileInput, identity: Identity, db: Db):
     authorize(db, identity, organization_id, admin=True)
     with mutation(db):
+        lock_organization(db, organization_id)
         p = db.get(BusinessProfile, organization_id)
         if p is None:
             p = BusinessProfile(organization_id=organization_id)

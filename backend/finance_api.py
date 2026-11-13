@@ -73,7 +73,7 @@ def invoice_ledger(organization_id: str, invoice_id: str, identity: Identity, db
                                                     Payment.invoice_id == invoice_id).order_by(Payment.created_at, Payment.id).limit(2001)))
     if max(len(memos), len(refunds), len(payments)) > 2000:
         raise HTTPException(422, 'This release supports up to 2,000 entries per invoice ledger category')
-    return {'invoice_id': invoice.id, 'invoice_number': invoice.invoice_number, 'original_total_paise': invoice.total_paise,
+    return {'invoice_id': invoice.id, 'invoice_number': invoice.invoice_number, 'original_total_paise': invoice.total_paise, 'opening_receivable': invoice.opening_receivable,
             **invoice_positions(db, organization_id, [invoice])[invoice.id],
             'memos': [memo_out(m) for m in memos], 'refunds': [refund_out(r) for r in refunds],
             'payments': [{'id': p.id, 'amount_paise': p.amount_paise, 'created_at': timestamp(p.created_at)} for p in payments]}

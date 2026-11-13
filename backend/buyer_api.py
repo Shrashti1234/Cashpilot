@@ -138,7 +138,7 @@ def inspect_invoice(payload:TokenInput,request:Request,db:Db):
         promises=list(db.scalars(select(PaymentPromise).where(PaymentPromise.organization_id==link.organization_id,PaymentPromise.invoice_id==inv.id).order_by(PaymentPromise.created_at.desc()).limit(20)))
         link.view_count+=1;link.last_viewed_at=datetime.now(timezone.utc)
         record_event(db,link.organization_id,'buyer-link:'+link.id,'buyer_access.opened',inv.id)
-        result={'invoice_number':inv.invoice_number,'due_date':inv.due_date,'original_total_paise':inv.total_paise,
+        result={'invoice_number':inv.invoice_number,'due_date':inv.due_date,'original_total_paise':inv.total_paise,'opening_receivable':inv.opening_receivable,
             'adjusted_total_paise':pos['effective_total_paise'],'net_received_paise':pos['paid_paise'],
             'outstanding_paise':pos['outstanding_paise'],'customer_credit_paise':pos['credit_balance_paise'],
             'seller':seller,'recipient_name':source.party.get('name','') if source else buyer.name if buyer else 'Customer',
