@@ -20,8 +20,37 @@
    for owned, due or unassigned items across the workspace. Follow-ups due now are
    shown first, followed by invoice due date. It sends no message.
 
-This checkpoint does not parse native Tally or XLSX files, write vouchers back to
-Tally, or connect a payment or messaging provider. Next pilot acceptance gate:
-one real provider sandbox payment matched to the correct invoice and settlement,
-including duplicate event and refund cases. Then validate the workflow against
-representative pilot exports before any hosted release.
+## Run a provider-free walkthrough
+
+For a browser walkthrough with no account or credentials, install the normal
+backend and frontend dependencies, then start the two loopback servers:
+
+- From `backend`: `python pilot_demo.py`
+- From `frontend`: `npm exec -- vite --host 127.0.0.1 --port 5179 --strictPort`
+
+Open [the local practice screen](http://127.0.0.1:5179/practice.html). It uses
+a temporary local database, independent of the hosted API and database. A normal
+API shutdown discards the practice data; each start creates a fresh workspace.
+The page offers both sample downloads and the
+four workspace screens. If using a separate authenticated practice workspace
+instead, use the two [sample CSV files](../examples/pilot). They are synthetic;
+do not import them into a workspace with real balances.
+
+1. Import `open-receivables.csv`. Search for `PILOT-100` in **Collections worklist**
+   and assign a follow-up.
+2. Go to **Invoices & receipts**, open **Payments** on `PILOT-100`, and record
+   the sample receipt of ₹1,000. The settled invoice leaves the open worklist.
+3. In **Bank statement reconciliation**, create an account alias, import
+   `bank-statement.csv`, and open `PILOT-BANK-1`. Review the sample amount and
+   reference, select **Receipt · PILOT-100 · Pilot Buyer**, and confirm the
+   match. Reconciliation links the existing receipt without creating another.
+   The sample bank booking date and the receipt's CashPilot recording date
+   are separate facts.
+
+To run the same scenario without any account or secrets, install the backend
+requirements and run `python -m pytest test_pilot_workflow.py -q` from `backend`.
+The test uses an isolated database and covers duplicate receipt requests.
+
+Native Tally/XLSX parsing, Tally writeback, automated messages, and online
+checkout remain out of this checkpoint. A provider sandbox is only needed
+for the online payment and settlement acceptance gate.

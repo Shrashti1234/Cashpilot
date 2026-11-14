@@ -74,7 +74,7 @@ Pilot priority: [mapped receivables import and collections worklist](PILOT_WORKF
 are the first implementation slice. GitHub feature branch checkpoints may be
 pushed; automatic Vercel deployment is disabled for that branch.
 
-Current local checkpoint: 129 backend tests (including fourteen PostgreSQL checks),
+Current local checkpoint: 130 backend tests (including fourteen PostgreSQL checks),
 64 frontend tests and frontend build pass. GitHub CI is separate from local verification.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 

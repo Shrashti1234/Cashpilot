@@ -72,7 +72,9 @@ def new_invoice(pg,number='PG-INV'):
         db.commit();return row.id
 
 
-def test_runtime_import_and_follow_up_flow(pg):
+def test_runtime_import_follow_up_receipt_and_reconciliation_flow(pg):
+    from banking_api import (AccountInput, MatchInput, StatementInput, add_account,
+                             candidates, import_statement, reconcile, statement_rows)
     from receivable_import_api import MappedInput, CommitInput, preview, commit
     from collection_worklist_api import Assignment, assign, worklist
     org, actor = pg['org'], pg['user']
@@ -85,6 +87,22 @@ def test_runtime_import_and_follow_up_flow(pg):
         assert row['outstanding_paise'] == 2555
         assign(org, row['invoice_id'], Assignment(assignee=actor, follow_up=today()), actor, db)
         assert worklist(org, actor, db)['actions'][0]['task']['assignee'] == actor
+        receipt = record_payment(db, user_id=actor, organization_id=org, invoice_id=row['invoice_id'],
+                                 amount_paise=2555, idempotency_key='pilot-runtime')
+        receipt_id = receipt.id
+        db.commit()
+        assert worklist(org, actor, db)['total'] == 0
+        account = add_account(org, AccountInput(label='Pilot account'), actor, db)['id']
+        statement = StatementInput(csv_text='booked_date,reference,description,amount_inr,currency\n'
+                                   f'{today()},PILOT-TRANSFER,Sample transfer,25.55,INR')
+        assert import_statement(org, account, statement, actor, db)['imported'] == 1
+        transaction = statement_rows(org, account, actor, db)['rows'][0]['id']
+        [candidate] = candidates(org, transaction, actor, db)['candidates']
+        assert candidate['id'] == receipt_id
+        assert candidate['label'] == 'Receipt · PILOT-1 · Synthetic fixture buyer'
+        reconcile(org, transaction, MatchInput(kind='payment', target_id=receipt_id,
+                  note='Verified synthetic pilot receipt', confirmed=True), actor, db)
+        assert statement_rows(org, account, actor, db)['summary']['matched_count'] == 1
 
 
 def parallel(function):

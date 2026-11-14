@@ -1,7 +1,7 @@
 # CashPilot
 
 **Build-first phase:** the user has requested the entire market-gap roadmap before
-any further deployment. New operations work is local only. Track the remaining
+any further deployment. Tested checkpoints are pushed to the feature branch. Track the remaining
 scope in [the completion register](docs/BUILD_PLAN.md) and see [local operations](docs/OPERATIONS.md).
 
 Explainable cash-flow forecasting and financial scenario planning for small businesses.
@@ -17,6 +17,9 @@ Explainable cash-flow forecasting and financial scenario planning for small busi
 A profitable business can still run out of cash when customers pay after expenses fall due. CashPilot combines outstanding invoices, settled payment history, operating expenses and explicit cash assumptions to show when a shortfall could happen and how changing payment timing could affect it.
 
 ## Try the complete workflow
+
+For invoice import, a manually recorded receipt, and bank matching, use the
+[provider-free pilot walkthrough](docs/PILOT_WORKFLOW.md) and its synthetic CSVs.
 
 1. Sign in, create a business, and open **Decision Lab**.
 2. Explore the clearly labelled synthetic demo. Select **Try assumption**, then **Compare scenario** to compare an earlier receipt with the baseline.

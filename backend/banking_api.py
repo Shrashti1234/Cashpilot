@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel,ConfigDict,Field
-from sqlalchemy import select,func
+from sqlalchemy import and_,select,func
 from sqlalchemy.orm import Session
 from audit import record_event
 from auth_identity import get_verified_identity
@@ -10,7 +10,7 @@ from cash_ledger import CashEntry
 from intelligence_api import today,payment_day
 from operations_api import authorize,mutation
 from saas_api import get_saas_session
-from saas_domain import Payment,InvoiceRefund,lock_organization
+from saas_domain import Customer,Invoice,Payment,InvoiceRefund,lock_organization
 
 router=APIRouter(prefix='/api/v1/organizations/{organization_id}/banking',tags=['statement-reconciliation'])
 Identity=Annotated[str,Depends(get_verified_identity)]
@@ -120,10 +120,18 @@ def candidates(organization_id:str,transaction_id:str,identity:Identity,db:Db):
         column=getattr(BankMatch,kind+'_id')
         used=select(column).where(BankMatch.organization_id==organization_id,BankMatch.active.is_(True),column.is_not(None))
         query=select(model).where(model.organization_id==organization_id,model.amount_paise==abs(tx.amount_paise),model.id.not_in(used))
-        if kind=='cash_entry':query=query.where(CashEntry.status=='actual',CashEntry.direction==('in' if tx.amount_paise>0 else 'out'),CashEntry.entry_date<=today())
-        for row in db.scalars(query.order_by(model.created_at.desc()).limit(200)):
-            result.append({'kind':kind,'id':row.id,'amount_paise':row.amount_paise,'date':row.entry_date if kind=='cash_entry' else payment_day(row.created_at),'label':row.description if kind=='cash_entry' else ('Receipt' if kind=='payment' else 'Refund')+' · '+str(row.invoice_id)})
-    return {'candidates':result,'note':'Exact amounts only; review references and booking dates yourself. Up to 200 candidates per type. No automatic matches.'}
+        if kind=='cash_entry':
+            query=query.where(CashEntry.status=='actual',CashEntry.direction==('in' if tx.amount_paise>0 else 'out'),CashEntry.entry_date<=today())
+            for row in db.scalars(query.order_by(model.created_at.desc(),model.id).limit(200)):
+                result.append({'kind':kind,'id':row.id,'amount_paise':row.amount_paise,'date':row.entry_date,'label':row.description})
+        else:
+            query=(query.add_columns(Invoice.invoice_number,Customer.name)
+                   .join(Invoice,and_(Invoice.organization_id==model.organization_id,Invoice.id==model.invoice_id))
+                   .join(Customer,and_(Customer.organization_id==Invoice.organization_id,Customer.id==Invoice.customer_id)))
+            for row,number,customer in db.execute(query.order_by(model.created_at.desc(),model.id).limit(200)):
+                label=f"{'Receipt' if kind=='payment' else 'Refund'} · {number} · {customer}"
+                result.append({'kind':kind,'id':row.id,'amount_paise':row.amount_paise,'date':payment_day(row.created_at),'label':label})
+    return {'candidates':result,'note':'Exact amounts only. Receipt and refund dates show when they were recorded in CashPilot. Verify the bank reference and booking date before matching. Up to 200 candidates per type.'}
 
 
 @router.post('/transactions/{transaction_id}/match',status_code=201)
