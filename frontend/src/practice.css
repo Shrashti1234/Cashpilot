@@ -1,0 +1,37 @@
+.practice-shell{min-height:100vh;background:#0c1525;color:#f0f5ff}
+.practice-top{display:block;position:sticky;top:0;z-index:1;background:#101b2c;border-bottom:1px solid #27374d}
+.practice-top-inner,.practice-main,.practice-trail{width:min(1100px,100%);margin-inline:auto;padding-inline:clamp(18px,4vw,48px)}
+.practice-top-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:66px}
+.practice-brand{display:inline-flex;align-items:center;gap:10px;color:#f4fbff;text-decoration:none;font-weight:780;font-size:19px;letter-spacing:-.35px}
+.practice-logo,.practice-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:10px;background:#193d3c;color:#83f1ca;flex-shrink:0}
+.practice-tag,.practice-kicker,.practice-reference>span:first-child{color:#a3c7c1;letter-spacing:.14em;font-size:10px;font-weight:750}
+.practice-tag{border:1px solid #365454;border-radius:100px;padding:7px 10px;white-space:nowrap}
+.practice-main{padding-block:32px 52px}
+.practice-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,240px);gap:clamp(20px,4vw,44px);align-items:center;padding:clamp(20px,5vw,52px);border:1px solid #37535f;border-radius:23px;background:radial-gradient(ellipse at 95% 0,#214a4a,transparent 70%),#152336}
+.practice-hero h1{font-size:clamp(34px,6vw,66px);letter-spacing:-.045em;line-height:1.04;margin:12px 0 16px}
+.practice-hero em{font-style:normal;color:#83f1ca}
+.practice-hero p,.practice-step p,.practice-note p{line-height:1.6;color:#bfcee1}
+.practice-reference{display:grid;gap:5px;padding:18px 20px;border:1px solid #476669;border-radius:14px;background:#102330}
+.practice-reference strong{font-size:22px;overflow-wrap:anywhere}
+.practice-reference small{color:#bbcfdb}
+.practice-rule{display:block;border-top:1px solid #35505b;margin-block:9px}
+.practice-status,.practice-section-title,.practice-step-top,.practice-trail{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.practice-status{margin-block:18px}
+.practice-status p{display:flex;align-items:center;gap:9px;color:#d8e4f1;font-size:14px}
+.practice-dot{height:8px;width:8px;border-radius:50%;background:#f5cb73}
+.practice-dot.ready{background:#77e9bc}.practice-dot.offline{background:#f89795}
+.practice-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 13px;min-height:40px;border-radius:8px;border:1px solid #466477;background:#21384b;color:#eef7ff;font:inherit;font-size:13px;font-weight:650;text-align:left}
+.practice-btn:hover:enabled{background:#2c4a60}.practice-btn:disabled{opacity:.55;cursor:not-allowed}
+.practice-shell :is(button,a,input,select,textarea):focus-visible{outline:2px solid #9bf4d5;outline-offset:3px}
+.practice-alert{border:1px solid #845958;border-radius:10px;background:#382728;color:#ffdedc;padding:14px;line-height:1.6}
+.practice-section-title{margin:27px 0 14px}.practice-section-title h2{font-size:23px;margin:4px 0 0}.practice-section-title>span{font-size:13px;color:#bdccdc}
+.practice-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;list-style:none;padding:0;margin:0}
+.practice-step{display:flex;flex-direction:column;min-width:0;padding:20px;border:1px solid #30435a;border-radius:14px;background:#142035}
+.practice-step.is-next{border-color:#73c7b2;background:#172d3b}.practice-step.is-next .practice-actions>button:first-child{background:#83f1ca;color:#10271f}
+.practice-step-top{margin-bottom:12px}.practice-step h3{margin:0;font-size:17px}.practice-step h3 span{color:#9eb6c7;font-size:12px}
+.practice-step p{font-size:14px;margin:8px 0 16px}.practice-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.practice-download{background:transparent}.practice-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#c5d7e9;border-radius:99px;background:#223751;padding:6px 9px}.practice-badge.is-done{background:#1b423c;color:#a0f4d5}
+.practice-note{display:flex;gap:11px;align-items:flex-start;margin-top:18px;background:#172438;border:1px solid #30435a;border-radius:12px;padding:14px 16px}.practice-note svg{flex-shrink:0;margin-top:4px;color:#a9e4d4}.practice-note p{margin:0;font-size:13px}
+.practice-trail{padding-block:12px 0;color:#bdccdc;font-size:14px;justify-content:flex-start}
+.practice-focus:focus{outline:none}
+@media(max-width:600px){.practice-main{padding-top:18px}.practice-hero,.practice-steps{grid-template-columns:1fr}.practice-reference{padding:14px}.practice-hero h1 br{display:none}.practice-hero em{display:block}.practice-step{padding:16px}}
