@@ -1,0 +1,237 @@
+{
+  "source": "https://www.kaggle.com/datasets/pradumn203/payment-date-prediction-for-invoices-dataset",
+  "source_csv_sha256": "3409441a8ecc48438a0fd42421ce3230d95305f7afcefb732bf232a948b6cf88",
+  "existing_bundle_sha256": "46c3fca40a7f48f04e14b9d22b74f0f640363323ec0009df485a68244ef4008c",
+  "sklearn_version": "1.9.1",
+  "counts": {
+    "raw_rows": 50000,
+    "duplicates": 1161,
+    "non_invoice": 6,
+    "outside_split_or_purged": 3405,
+    "unlabelled": 9681,
+    "unlabelled_test_window": 348,
+    "already_overdue_or_settled_at_posting": 104
+  },
+  "splits": {
+    "train": {
+      "rows": 24634,
+      "customers": 901,
+      "first_posting": "2018-12-30",
+      "last_posting": "2019-09-25"
+    },
+    "calibration": {
+      "rows": 4261,
+      "customers": 433,
+      "first_posting": "2019-10-01",
+      "last_posting": "2019-11-27"
+    },
+    "test": {
+      "rows": 6748,
+      "customers": 549,
+      "first_posting": "2019-12-01",
+      "last_posting": "2020-02-27"
+    }
+  },
+  "test_rows_from_customers_absent_in_training": 91,
+  "outside_existing_model_support": {
+    "any_feature": 6217,
+    "log_invoice_rupees": 2178,
+    "prior_paid_count": 5706,
+    "prior_late_rate": 310,
+    "prior_mean_delay_days": 143,
+    "days_until_due": 539
+  },
+  "metrics": {
+    "training_prevalence": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.38959691760521636,
+      "brier": 0.23859270057422652,
+      "log_loss": 0.6701853430244509,
+      "late_prevalence": 0.38959691760521636,
+      "calibration_bins": [
+        {
+          "predicted": 0.417552975562231,
+          "observed": 0.38959691760521636,
+          "count": 6748
+        }
+      ]
+    },
+    "customer_history": {
+      "roc_auc": 0.7747619299591434,
+      "pr_auc": 0.7181006294397522,
+      "brier": 0.18030991261436682,
+      "log_loss": 0.5375161342732393,
+      "late_prevalence": 0.38959691760521636,
+      "calibration_bins": [
+        {
+          "predicted": 0.0626468673448902,
+          "observed": 0.07920792079207921,
+          "count": 101
+        },
+        {
+          "predicted": 0.16902358645123164,
+          "observed": 0.16611977030352748,
+          "count": 2438
+        },
+        {
+          "predicted": 0.24198453945453208,
+          "observed": 0.243531202435312,
+          "count": 657
+        },
+        {
+          "predicted": 0.3563576089004349,
+          "observed": 0.3819599109131403,
+          "count": 898
+        },
+        {
+          "predicted": 0.44556682712596934,
+          "observed": 0.4451145958986731,
+          "count": 829
+        },
+        {
+          "predicted": 0.5407508947086425,
+          "observed": 0.577639751552795,
+          "count": 322
+        },
+        {
+          "predicted": 0.6538310288233271,
+          "observed": 0.6082317073170732,
+          "count": 656
+        },
+        {
+          "predicted": 0.758616666847848,
+          "observed": 0.7368421052631579,
+          "count": 608
+        },
+        {
+          "predicted": 0.833007851065491,
+          "observed": 0.8484848484848485,
+          "count": 99
+        },
+        {
+          "predicted": 0.9655972228417662,
+          "observed": 0.96996996996997,
+          "count": 333
+        }
+      ]
+    },
+    "existing_cashpilot": {
+      "roc_auc": 0.7484955236709785,
+      "pr_auc": 0.6935998700998416,
+      "brier": 0.2203381969279359,
+      "log_loss": 0.6427923927816448,
+      "late_prevalence": 0.38959691760521636,
+      "calibration_bins": [
+        {
+          "predicted": 0.07315025323807728,
+          "observed": 0.13533834586466165,
+          "count": 133
+        },
+        {
+          "predicted": 0.15580824176983782,
+          "observed": 0.17862838915470494,
+          "count": 627
+        },
+        {
+          "predicted": 0.2530399755252046,
+          "observed": 0.2817824377457405,
+          "count": 763
+        },
+        {
+          "predicted": 0.3453960525488948,
+          "observed": 0.18794964028776978,
+          "count": 1112
+        },
+        {
+          "predicted": 0.4384810835273717,
+          "observed": 0.1747700394218134,
+          "count": 761
+        },
+        {
+          "predicted": 0.550807931444801,
+          "observed": 0.3164251207729469,
+          "count": 414
+        },
+        {
+          "predicted": 0.6518636164737995,
+          "observed": 0.4293286219081272,
+          "count": 566
+        },
+        {
+          "predicted": 0.750010934950005,
+          "observed": 0.4927536231884058,
+          "count": 621
+        },
+        {
+          "predicted": 0.8554790899549601,
+          "observed": 0.6469957081545065,
+          "count": 932
+        },
+        {
+          "predicted": 0.9397312496893815,
+          "observed": 0.8046398046398047,
+          "count": 819
+        }
+      ]
+    },
+    "new_candidate": {
+      "roc_auc": 0.782036108909431,
+      "pr_auc": 0.7232661536116173,
+      "brier": 0.1794297586076,
+      "log_loss": 0.5368481939963113,
+      "late_prevalence": 0.38959691760521636,
+      "calibration_bins": [
+        {
+          "predicted": 0.08990932164941917,
+          "observed": 0.10191082802547771,
+          "count": 157
+        },
+        {
+          "predicted": 0.14953188812439713,
+          "observed": 0.1707227138643068,
+          "count": 2712
+        },
+        {
+          "predicted": 0.2655119101788549,
+          "observed": 0.3161290322580645,
+          "count": 620
+        },
+        {
+          "predicted": 0.36063041080072233,
+          "observed": 0.4056818181818182,
+          "count": 880
+        },
+        {
+          "predicted": 0.44465028283183455,
+          "observed": 0.41402714932126694,
+          "count": 442
+        },
+        {
+          "predicted": 0.5602290303789079,
+          "observed": 0.6787878787878788,
+          "count": 330
+        },
+        {
+          "predicted": 0.6467202911084874,
+          "observed": 0.6016260162601627,
+          "count": 615
+        },
+        {
+          "predicted": 0.742744475691688,
+          "observed": 0.7396768402154399,
+          "count": 557
+        },
+        {
+          "predicted": 0.8660870483800988,
+          "observed": 0.9047619047619048,
+          "count": 252
+        },
+        {
+          "predicted": 0.9573855698299956,
+          "observed": 0.9836065573770492,
+          "count": 183
+        }
+      ]
+    }
+  }
+}
