@@ -1,0 +1,11 @@
+export type Point = {date:string;p10_paise:number;median_paise:number;p90_paise:number};
+export type Projection = {points:Point[];closing_median_paise:number;minimum_median_paise:number;shortfall_frequency:number;first_median_shortfall_date:string|null;deferred_beyond_horizon_paise:number};
+export type Risk = {invoice_id:string;customer_name:string;due_date:string;outstanding_paise:number;days_overdue:number;late_probability:number|null;history_count:number;disputed:boolean;outside_training_support:string[];base_log_odds:number;predicted_log_odds:number;contributions:{feature:string;value:number;log_odds_contribution:number}[]};
+export type Entry = {id:string;entry_date:string;direction:string;status:string;amount_paise:number;description:string};
+export type Review = {invoice_id:string;customer_name:string;assumed_receipt_date:string;minimum_balance_improvement_paise:number;shortfall_frequency_reduction:number};
+export type Simulation = {as_of:string;data_source:string;horizon_days:number;model_version:string;expense_method:string;expense_history_days:number;baseline:Projection;scenario:Projection;improvement_paise:number;invoice_risks:Risk[];planned_expenses:Entry[];recommended_reviews:Review[];warnings:string[];paths:number;seed:number};
+export type Metric = {roc_auc:number;pr_auc:number;brier:number;log_loss:number};
+export type ModelReport = {version:string;evaluation:{artifact_sha256:string;payment:{counts:Record<string,number>;metrics:Record<string,Metric>};cashflow:{horizon_metrics:Record<string,{ridge_wape:number;seasonal_naive_wape:number;ridge_total_mae_rupees:number}>};limitations:string[]}};
+export type ScenarioRequest = {opening_balance_paise:number;horizon_days:number;use_demo:boolean;receipt_overrides:{invoice_id:string;receipt_date:string}[];expense_overrides:{entry_id:string;expense_date:string}[]};
+export const inr=(paise:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(paise/100);
+export const pct=(value:number)=>`${(value*100).toFixed(1)}%`;

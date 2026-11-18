@@ -1,0 +1,65 @@
+{
+  "commit": "ba1173b716b8abcbd826467e555d464ed00173a6",
+  "health": 200,
+  "ready": 200,
+  "checks": {
+    "/cash-entries": {
+      "missing": 401,
+      "otherTenant": 403
+    },
+    "/intelligence/model": {
+      "missing": 401,
+      "otherTenant": 403
+    },
+    "/disputes": {
+      "missing": 401,
+      "otherTenant": 403
+    },
+    "/audit": {
+      "missing": 401,
+      "otherTenant": 403
+    }
+  },
+  "horizons": {
+    "7": {
+      "status": 200,
+      "points": 7,
+      "expenseModel": "trained_ridge_expenses",
+      "remainingInvoice": 4000000,
+      "disputed": false
+    },
+    "30": {
+      "status": 200,
+      "points": 30,
+      "expenseModel": "trained_ridge_expenses",
+      "remainingInvoice": 4000000,
+      "disputed": false
+    },
+    "90": {
+      "status": 200,
+      "points": 90,
+      "expenseModel": "trained_ridge_expenses",
+      "remainingInvoice": 4000000,
+      "disputed": false
+    }
+  },
+  "unknownScenarioReference": 422,
+  "auditActions": [
+    "dispute.resolved",
+    "dispute.under_review",
+    "dispute.opened",
+    "payment.recorded_or_replayed",
+    "invoice.created",
+    "customer.created",
+    "cash_entry.updated",
+    "cash_entry.created",
+    "cash_entries.imported",
+    "workspace.created"
+  ],
+  "browserErrors": [],
+  "imported": 100,
+  "editedStatus": "void",
+  "demoScenarioMinimumImprovementPaise": 2913573,
+  "mobileOverflow": false,
+  "artifactSha256": "46c3fca40a7f48f04e14b9d22b74f0f640363323ec0009df485a68244ef4008c"
+}

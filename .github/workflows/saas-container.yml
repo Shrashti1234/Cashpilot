@@ -1,0 +1,23 @@
+name: SaaS container build
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/saas-container.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/saas-container.yml'
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated SaaS backend image
+        run: docker build --pull -t cashpilot-saas:ci ./backend
+      - name: Assert container is non-root and starts the SaaS API
+        run: |
+          docker image inspect cashpilot-saas:ci --format '{{.Config.User}}' | grep -qx app
+          docker image inspect cashpilot-saas:ci --format '{{json .Config.Cmd}}' | grep -q 'saas_main:app'
+      - name: Compile Python modules inside image
+        run: docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/cashpilot-pycache --entrypoint python cashpilot-saas:ci -m compileall -q /app
