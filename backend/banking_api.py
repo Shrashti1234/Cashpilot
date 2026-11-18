@@ -1,7 +1,7 @@
-from typing import Annotated
-from fastapi import APIRouter,Depends,HTTPException
+from typing import Annotated, Literal
+from fastapi import APIRouter,Depends,HTTPException,Query
 from pydantic import BaseModel,ConfigDict,Field
-from sqlalchemy import and_,select,func
+from sqlalchemy import and_,or_,select,func
 from sqlalchemy.orm import Session
 from audit import record_event
 from auth_identity import get_verified_identity
@@ -97,13 +97,24 @@ def import_statement(organization_id:str,account_id:str,payload:StatementInput,i
 
 
 @router.get('/accounts/{account_id}/transactions')
-def statement_rows(organization_id:str,account_id:str,identity:Identity,db:Db):
+def statement_rows(organization_id:str,account_id:str,identity:Identity,db:Db,
+                   view:Literal['all','matched','unmatched']='all',
+                   q:Annotated[str,Query(max_length=100)]='',
+                   page:Annotated[int,Query(ge=1,le=1_000_000)]=1,
+                   page_size:Annotated[int,Query(ge=1,le=100)]=25):
     authorize(db,identity,organization_id);account(db,organization_id,account_id)
     query=select(BankTransaction,BankMatch).outerjoin(BankMatch,(BankMatch.organization_id==BankTransaction.organization_id)&(BankMatch.transaction_id==BankTransaction.id)&BankMatch.active.is_(True)).where(BankTransaction.organization_id==organization_id,BankTransaction.account_id==account_id)
     summary=db.execute(query.with_only_columns(func.count(BankTransaction.id),func.coalesce(func.sum(BankTransaction.amount_paise),0),func.count(BankMatch.id))).one()
-    rows=db.execute(query.order_by(BankTransaction.booked_date.desc(),BankTransaction.id).limit(1000))
+    if view=='matched':query=query.where(BankMatch.id.is_not(None))
+    if view=='unmatched':query=query.where(BankMatch.id.is_(None))
+    if term:=q.strip():
+        query=query.where(or_(BankTransaction.reference.icontains(term,autoescape=True),
+                              BankTransaction.description.icontains(term,autoescape=True)))
+    total=db.scalar(query.with_only_columns(func.count(BankTransaction.id)))
+    rows=db.execute(query.order_by(BankTransaction.booked_date.desc(),BankTransaction.id).offset((page-1)*page_size).limit(page_size))
     return {'summary':{'row_count':summary[0],'imported_net_change_paise':summary[1],'matched_count':summary[2]},'rows':[{**{k:getattr(t,k) for k in ['id','booked_date','reference','description','amount_paise']},'match':match_out(m) if m else None} for t,m in rows],
-            'note':'Latest 1,000 rows; totals cover all imported rows. Imported net change is not a bank balance. Matching never creates a receipt.'}
+            'page':page,'page_size':page_size,'total':total,
+            'note':'Totals cover all imported rows for this account. Imported net change is not a bank balance. Matching never creates a receipt.'}
 
 
 TARGETS={'payment':Payment,'refund':InvoiceRefund,'cash_entry':CashEntry}

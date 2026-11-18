@@ -26,9 +26,10 @@ record is enforced by partial unique indexes. Reversal requires a reason and
 preserves match history. Matched cash entries cannot be edited until reversal.
 
 These imports never change receivables, create payments or manufacture cash.
-Imported net change is labelled separately from a bank balance. The screen shows
-the latest 1,000 rows while totals cover the entire imported account. CSV exports
-neutralize formula-like text. Viewers can inspect records without write controls.
+Imported net change is labelled separately from a bank balance. Search and match
+filters cover the whole account, with 25 rows per page. Summary figures cover all
+account rows. CSV export covers the displayed page and neutralizes formula-like
+text. Viewers can inspect records without write controls.
 
 PostgreSQL runtime grants permit inserting and reading statement evidence, with
 no UPDATE/DELETE access. Business control locks serialize imports and competing
@@ -41,6 +42,6 @@ and no page errors. The browser fixture is external to the production applicatio
 
 Remaining scope: live provider ingestion and sandbox validation, statement format
 mappings, split/fee settlements, transfer matching, reconciliation closing,
-opening/closing balance validation, large-account pagination and independent
+opening/closing balance validation, scale benchmarking and independent
 reconciliation approvals. This is a usable local manual workflow, not completion
 of the complete bank-integration roadmap.

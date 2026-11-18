@@ -66,6 +66,24 @@ def test_reconciliation_is_one_to_one_reversible_and_tenant_scoped(api):
     with Session(engine) as db:assert db.scalar(select(func.count()).select_from(BankMatch))==2;assert db.get(Payment,'pa').amount_paise==5000
 
 
+def test_statement_search_and_match_filter_apply_before_pagination(api):
+    c,_,_=api
+    acct=account(c)
+    assert load(c,acct,*(('B%02d'%i,'Incoming receipt','50.00') for i in range(30))).status_code==201
+    path=BASE+'/accounts/'+acct+'/transactions'
+    first=c.get(path,params={'page_size':10}).json()
+    last=c.get(path,params={'page_size':10,'page':3}).json()
+    assert first['total']==last['total']==30 and len(last['rows'])==10
+    assert not {r['id'] for r in first['rows']} & {r['id'] for r in last['rows']}
+    tx=last['rows'][0]
+    assert match(c,tx['id'],'payment','pa').status_code==201
+    matched=c.get(path,params={'view':'matched','q':tx['reference'],'page_size':1}).json()
+    assert matched['total']==1 and matched['rows'][0]['id']==tx['id']
+    assert matched['summary']['row_count']==30 and matched['summary']['matched_count']==1
+    assert c.get(path,params={'view':'unmatched'}).json()['total']==29
+    assert c.get(path,params={'q':'%'}).json()['total']==0
+
+
 def test_only_actual_direction_matched_records_are_reconciled_and_locked(api):
     c,who,engine=api;acct=account(c);load(c,acct,('E','Expense','-12.34'),('F','Refund','-5.00'),('G','Wrong direction','12.34'))
     tx={r['reference']:r['id'] for r in rows(c,acct)}

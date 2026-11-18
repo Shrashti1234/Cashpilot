@@ -74,12 +74,14 @@ Pilot priority: [mapped receivables import and collections worklist](PILOT_WORKF
 are the first implementation slice. GitHub feature branch checkpoints may be
 pushed; automatic Vercel deployment is disabled for that branch.
 
-Current local checkpoint: 130 backend tests (including fourteen PostgreSQL checks),
+Current local checkpoint: 131 backend tests (including fourteen PostgreSQL checks),
 65 frontend tests and frontend build pass. GitHub CI is separate from local verification.
 The workspace now groups sections by workflow, with consistent return to overview
 and a mobile section selector. Local browser verification covered CSV import,
 history failure and retry, keyboard dismissal, invalid receipt precision,
 partial receipt posting and the resulting collections balance.
+The manual pilot can start with one Windows command. Bank reconciliation now
+supports account-wide reference search, match filters and page-by-page review.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the

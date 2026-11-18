@@ -25,6 +25,9 @@
 For a browser walkthrough with no account or credentials, install the normal
 backend and frontend dependencies, then start the two loopback servers:
 
+- On Windows, from the repository root: `./Start-Practice.ps1` (add
+  `-OpenBrowser` to open the browser). It reuses a healthy practice session.
+- Or start the two servers manually:
 - From `backend`: `python pilot_demo.py`
 - From `frontend`: `npm exec -- vite --host 127.0.0.1 --port 5179 --strictPort`
 
