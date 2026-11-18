@@ -12,6 +12,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
+RAZORPAY_TEST_PAYMENT_PREFIX = 'razorpay-test:'
+
 
 class SaaSBase(DeclarativeBase):
     pass
@@ -195,6 +197,8 @@ def record_payment(
     require_member(db, user_id, organization_id, write=True)
     if amount_paise <= 0 or not idempotency_key.strip():
         raise ValueError("Positive payment and idempotency key required")
+    if idempotency_key.startswith(RAZORPAY_TEST_PAYMENT_PREFIX):
+        raise ValueError("Payment key prefix is reserved for Razorpay")
     invoice = db.scalar(select(Invoice).where(
         Invoice.organization_id == organization_id, Invoice.id == invoice_id).with_for_update())
     if invoice is None:

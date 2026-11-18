@@ -16,6 +16,7 @@ from intelligence_api import today
 from operations import BusinessProfile,TradeDocument
 from operations_api import authorize,mutation
 from promises import PaymentPromise,create_promise,promise_out,received_since
+from razorpay_checkout import start_checkout,test_payment_available,test_settings
 from request_limits import allow_action
 from saas_api import get_saas_session
 from saas_domain import Customer,Invoice,Payment,Organization,invoice_positions
@@ -35,6 +36,7 @@ class LinkInput(BaseModel):
     expires_days:int=Field(default=7,ge=1,le=30,strict=True)
     can_dispute:bool=Field(default=True,strict=True)
     can_promise:bool=Field(default=True,strict=True)
+    can_pay:bool=Field(default=False,strict=True)
 
 
 class TokenInput(BaseModel):
@@ -72,7 +74,7 @@ def utc(value):return value if value.tzinfo else value.replace(tzinfo=timezone.u
 
 
 def link_out(link):
-    return {**{k:getattr(link,k) for k in ['id','invoice_id','revoked','can_dispute','can_promise','view_count']},
+    return {**{k:getattr(link,k) for k in ['id','invoice_id','revoked','can_dispute','can_promise','can_pay','view_count']},
             'expires_at':utc(link.expires_at),'last_viewed_at':utc(link.last_viewed_at) if link.last_viewed_at else None}
 
 
@@ -93,20 +95,25 @@ def capability(db,token,request):
 def links(organization_id:str,identity:Identity,db:Db):
     authorize(db,identity,organization_id,admin=True)
     records=db.scalars(select(BuyerAccess).where(BuyerAccess.organization_id==organization_id).order_by(BuyerAccess.created_at.desc()).limit(100))
-    return {'links':[link_out(link) for link in records]}
+    settings=test_settings()
+    return {'links':[link_out(link) for link in records],
+            'razorpay_test_configured':bool(settings and settings.organization_id==organization_id)}
 
 
 @router.post('/organizations/{organization_id}/buyer-access',status_code=201)
 def create_link(organization_id:str,payload:LinkInput,identity:Identity,db:Db):
     authorize(db,identity,organization_id,admin=True)
     allow_action(identity,'buyer-link-create','private links')
+    settings=test_settings()
+    if payload.can_pay and (not settings or settings.organization_id!=organization_id):
+        raise HTTPException(422,'Razorpay Test Mode is unavailable for this business.')
     with mutation(db):
         inv=db.scalar(select(Invoice).where(Invoice.organization_id==organization_id,Invoice.id==payload.invoice_id))
         if inv is None:raise ValueError('Choose an issued invoice in this business')
         token=secrets.token_urlsafe(32)
         link=BuyerAccess(organization_id=organization_id,invoice_id=inv.id,token_hash=hashlib.sha256(token.encode()).hexdigest(),
             expires_at=datetime.now(timezone.utc)+timedelta(days=payload.expires_days),can_dispute=payload.can_dispute,
-            can_promise=payload.can_promise,revoked=False,view_count=0,created_by=identity)
+            can_promise=payload.can_promise,can_pay=payload.can_pay,revoked=False,view_count=0,created_by=identity)
         db.add(link);db.flush();record_event(db,organization_id,identity,'buyer_access.created',link.id)
     return {**link_out(link),'token':token}
 
@@ -146,8 +153,17 @@ def inspect_invoice(payload:TokenInput,request:Request,db:Db):
             'permissions':{'can_dispute':link.can_dispute,'can_promise':link.can_promise},
             'dispute':{'status':dispute.status,'reason':dispute.reason} if dispute else None,
             'promises':[public_promise(p,received_since(db,p)) for p in promises],
-            'payment_provider_connected':False}
+            'payment_provider_connected':link.can_pay and test_payment_available(
+                link.organization_id,pos['outstanding_paise'],dispute,utc(link.expires_at))}
     return result
+
+
+@router.post('/buyer/checkout')
+def buyer_checkout(payload:TokenInput,request:Request,db:Db):
+    link=capability(db,payload.token,request)
+    if not link.can_pay:
+        raise HTTPException(403,'This private link does not allow test checkout.')
+    return start_checkout(db,link.organization_id,link.invoice_id,utc(link.expires_at))
 
 
 @router.post('/buyer/promise',status_code=201)

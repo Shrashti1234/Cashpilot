@@ -1,7 +1,7 @@
 """Hash-only invoice capabilities, separate from business membership tokens."""
 from datetime import datetime,timezone
 
-from sqlalchemy import Boolean,DateTime,ForeignKeyConstraint,Index,Integer,String,UniqueConstraint
+from sqlalchemy import Boolean,DateTime,ForeignKeyConstraint,Index,Integer,String,UniqueConstraint,false
 from sqlalchemy.orm import Mapped,mapped_column
 
 from saas_domain import SaaSBase,new_id
@@ -17,6 +17,7 @@ class BuyerAccess(SaaSBase):
     revoked:Mapped[bool]=mapped_column(Boolean,default=False)
     can_dispute:Mapped[bool]=mapped_column(Boolean,default=True)
     can_promise:Mapped[bool]=mapped_column(Boolean,default=True)
+    can_pay:Mapped[bool]=mapped_column(Boolean,default=False,server_default=false())
     view_count:Mapped[int]=mapped_column(Integer,default=0)
     last_viewed_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
     created_by:Mapped[str]=mapped_column(String(200))

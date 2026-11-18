@@ -18,6 +18,7 @@ import contacts  # noqa: F401
 import forecast_journal  # noqa: F401
 import financial_approvals  # noqa: F401
 import collection_tasks  # noqa: F401
+import razorpay_checkout  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

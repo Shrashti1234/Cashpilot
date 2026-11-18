@@ -20,6 +20,7 @@ A profitable business can still run out of cash when customers pay after expense
 
 For invoice import, a manually recorded receipt, and bank matching, use the
 [provider-free pilot walkthrough](docs/PILOT_WORKFLOW.md) and its synthetic CSVs.
+For online checkout development, see the [Razorpay Test Mode setup](docs/RAZORPAY_TEST_MODE.md).
 
 1. Sign in, create a business, and open **Decision Lab**.
 2. Explore the clearly labelled synthetic demo. Select **Try assumption**, then **Compare scenario** to compare an earlier receipt with the baseline.

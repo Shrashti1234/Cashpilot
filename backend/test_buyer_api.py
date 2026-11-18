@@ -1,6 +1,9 @@
 from datetime import datetime,timedelta,timezone
 import hashlib
+import hmac
+import json
 
+import httpx
 import pytest
 from fastapi import FastAPI,HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -16,6 +19,7 @@ from buyer_api import router
 from intelligence_api import today,router as intelligence_router
 from operations import BusinessProfile
 from promises import PaymentPromise
+import razorpay_checkout
 from saas_api import get_saas_session,router as invoices_router
 from finance_api import router as finance_router
 from saas_domain import SaaSBase,Organization,Membership,Customer,Invoice,InvoiceMemo
@@ -31,6 +35,7 @@ def api(monkeypatch):
         db.add_all([Invoice(id='ia',organization_id='a',customer_id='ca',invoice_number='SHARED-1',due_date=today()-timedelta(days=2),total_paise=10000),Invoice(id='ib',organization_id='b',customer_id='cb',invoice_number='SECRET-1',due_date=today(),total_paise=90000),BusinessProfile(organization_id='a',legal_name='Acme seller',address='Supplier address',gstin='',state_code='27',require_approval=False)]);db.flush()
         db.add(InvoiceMemo(organization_id='a',invoice_id='ia',kind='credit',number='PRIVATE-CR',amount_paise=1000,reason='SENSITIVE_INTERNAL_STRATEGY',actor_id='owner'));db.commit()
     app=FastAPI();app.include_router(router);app.include_router(invoices_router);app.include_router(intelligence_router);app.include_router(finance_router)
+    app.include_router(razorpay_checkout.router)
     app.add_exception_handler(RequestValidationError,safe_validation_error)
     who={'id':'owner'}
     def identity():
@@ -45,6 +50,102 @@ def api(monkeypatch):
 
 
 BASE='/api/v1/organizations/a'
+
+
+@pytest.fixture
+def razorpay_test_mode(monkeypatch):
+    for name, value in {
+        'ORGANIZATION_ID': 'a', 'ACCOUNT_ID': 'acc_Sandbox', 'KEY_ID': 'rzp_test_Sandbox',
+        'KEY_SECRET': 'test-key', 'WEBHOOK_SECRET': 'test-webhook',
+    }.items():
+        monkeypatch.setenv('RAZORPAY_TEST_'+name, value)
+    links = {}
+    calls = []
+
+    def request(method, url, *, auth, timeout, **kwargs):
+        assert url == 'https://api.razorpay.com/v1/payment_links'
+        assert auth == ('rzp_test_Sandbox', 'test-key')
+        calls.append(method)
+        original = httpx.Request(method,url)
+        if method == 'GET':
+            existing = links.get(kwargs['params']['reference_id'])
+            return httpx.Response(200,request=original,json={'payment_links':[existing] if existing else []})
+        body = kwargs['json']
+        assert body['accept_partial'] is False and body['reminder_enable'] is False
+        assert body['notify'] == {'email':False,'sms':False}
+        assert 'customer' not in body and body['amount'] == 9000
+        links[body['reference_id']] = {**body,'id':'plink_Test1','status':'created',
+                                      'short_url':'https://rzp.io/rzp/Test1','order_id':'order_Test1'}
+        # Model a provider-side success whose response never reached CashPilot.
+        raise httpx.ReadTimeout('Simulated lost response', request=original)
+
+    monkeypatch.setattr(razorpay_checkout.httpx,'request',request)
+    return links,calls
+
+
+def test_razorpay_checkout_recovery_and_signed_receipt(api,razorpay_test_mode):
+    c,who,_=api
+    provider_links,calls=razorpay_test_mode
+    token=link(c,can_pay=True)['token']
+    checkout='/api/v1/buyer/checkout'
+    inspect='/api/v1/buyer/inspect'
+    webhook='/api/v1/webhooks/razorpay/test'
+    who['id']=None
+    body={'token':token}
+    assert c.post(inspect,json=body).json()['payment_provider_connected'] is True
+    assert c.post(checkout,json=body).status_code==502
+    recovered=c.post(checkout,json=body)
+    assert recovered.status_code==200,recovered.text
+    assert recovered.json()['checkout_url']=='https://rzp.io/rzp/Test1'
+    assert c.post(checkout,json=body).json()==recovered.json()
+    assert calls==['GET','POST','GET']
+    provider=next(iter(provider_links.values()))
+
+    def deliver(*, signature=True, amount=9000, account='acc_Sandbox', status='captured'):
+        event={'event':'payment_link.paid','account_id':account,'payload':{
+            'payment_link':{'entity':{**provider,'status':'paid','amount_paid':9000}},
+            'payment':{'entity':{'id':'pay_Test1','order_id':'order_Test1','amount':amount,
+                                 'currency':'INR','status':status}},
+        }}
+        raw=json.dumps(event,indent=2).encode()
+        digest=hmac.new(b'test-webhook',raw,hashlib.sha256).hexdigest()
+        return c.post(webhook,content=raw,headers={'X-Razorpay-Signature':digest if signature else '0'*64})
+
+    assert deliver(signature=False).status_code==401
+    assert deliver(account='acc_Other').status_code==403
+    assert deliver(amount=8999).status_code==409
+    assert deliver(status='authorized').status_code==409
+    assert c.post(inspect,json=body).json()['outstanding_paise']==9000
+    assert deliver().json()=={'status':'recorded'}
+    assert deliver().json()=={'status':'already_recorded'}
+    buyer=c.post(inspect,json=body).json()
+    assert buyer['outstanding_paise']==0 and buyer['net_received_paise']==9000
+    assert buyer['payment_provider_connected'] is False
+    who['id']='owner'
+    receipts=c.get(BASE+'/invoices/ia/payments').json()['payments']
+    assert len(receipts)==1 and receipts[0]['amount_paise']==9000
+    assert c.post(BASE+'/invoices/ia/payments',json={
+        'amount_paise':9000,'idempotency_key':'razorpay-test:pay_Test1'}).status_code==422
+
+
+def test_razorpay_is_workspace_scoped_and_requires_payment_permission(api,razorpay_test_mode,monkeypatch):
+    c,who,_=api
+    assert c.get(BASE+'/buyer-access').json()['razorpay_test_configured'] is True
+    no_pay=link(c)['token']
+    allowed=link(c,can_pay=True)
+    who['id']='bob'
+    foreign='/api/v1/organizations/b/buyer-access'
+    assert c.get(foreign).json()['razorpay_test_configured'] is False
+    assert c.post(foreign,json={'invoice_id':'ib','can_pay':True}).status_code==422
+    who['id']=None
+    checkout='/api/v1/buyer/checkout'
+    assert c.post(checkout,json={'token':no_pay}).status_code==403
+    assert c.post('/api/v1/buyer/dispute',json={
+        'token':allowed['token'],'reason':'quality','description':'Review before paying'}).status_code==201
+    assert c.post(checkout,json={'token':allowed['token']}).status_code==409
+    monkeypatch.setenv('RAZORPAY_TEST_KEY_ID','rzp_live_WrongMode')
+    assert c.post(checkout,json={'token':allowed['token']}).status_code==403
+    assert razorpay_test_mode[1]==[]
 
 
 def link(c,**options):
