@@ -65,3 +65,17 @@ it('ignores a late response from the previous tenant',async()=>{
 it('neutralizes spreadsheet formulas in exported user text',()=>{
  expect(csvCell('=HYPERLINK("unsafe")')).toBe('"\'=HYPERLINK(""unsafe"")"');expect(csvCell('-12.50')).toBe('"-12.50"');expect(csvCell(-12.5)).toBe('"-12.5"');
 });
+
+it('clears private data immediately when the session changes on the same URL',async()=>{
+ const pending=new Map<string,(value:unknown)=>void>();
+ fetchMock.mockImplementation((_url:string,options:RequestInit)=>new Promise(resolve=>{
+  pending.set((options.headers as Record<string,string>).Authorization,resolve);
+ }));
+ const {result,rerender}=renderHook(({token})=>useAuthenticatedResource<{tenant:string}>('https://api.test/shared',token),{initialProps:{token:'first'}});
+ await act(async()=>pending.get('Bearer first')!({ok:true,json:async()=>({tenant:'First account'})}));
+ expect(result.current.data?.tenant).toBe('First account');
+ rerender({token:'second'});
+ expect(result.current.data).toBeNull();
+ await act(async()=>pending.get('Bearer second')!({ok:true,json:async()=>({tenant:'Second account'})}));
+ expect(result.current.data?.tenant).toBe('Second account');
+});

@@ -1,0 +1,22 @@
+.business-shell{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh;align-items:start;background:#0b1322;color:#eef4ff}
+.business-nav{position:sticky;top:0;max-height:100vh;overflow:auto;padding:24px 15px 18px;border-right:1px solid #304057;background:#111d30;font-size:14px}
+.business-nav-brand,.business-nav-switch{display:flex;align-items:center;gap:9px}
+.business-nav-brand{font-size:21px;font-weight:750;margin:0 8px 14px;color:#8af1cf}
+.business-nav-context{display:grid;gap:5px;overflow-wrap:anywhere;padding:0 8px 14px;border-bottom:1px solid #33445a}
+.business-nav-context span{color:#a8bbd2;text-transform:capitalize;font-size:12px}
+.business-nav-links{margin:12px 0}
+.business-nav-group h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a8bbd2;margin:15px 8px 5px}
+.business-nav button{background:transparent;color:#d8e6f5;border:1px solid transparent;border-radius:8px;text-align:left;padding:7px 8px;width:100%;line-height:1.4}
+.business-nav button:hover,.business-nav button[aria-current=page]{background:#1c393d;color:#a7f6db;border-color:#355b59}
+.business-nav :is(button,select):focus-visible{outline:2px solid #84ebcf;outline-offset:-2px}
+.business-nav .business-nav-switch{border-color:#395066;min-height:38px}
+.business-section-body{min-width:0}
+.business-section-body:focus{outline:none}
+.business-nav-mobile{display:none}
+.business-section-body>.workspace-screen>.workspace-top{background:transparent;border-bottom-color:#293a50}
+@media(max-width:850px){
+ .business-shell{display:block}.business-nav{position:static;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 16px;max-height:none;overflow:visible;border-right:0;border-bottom:1px solid #304057;padding:14px 18px}
+ .business-nav-brand{margin:0}.business-nav-context{grid-column:1/-1;padding:0;border:0;display:flex;flex-wrap:wrap;gap:8px}
+ .business-nav-links{display:none}.business-nav-mobile{display:grid;grid-column:1/-1;gap:5px;font-size:12px;color:#bfd0e4}.business-nav-mobile select{background:#162940;color:#eef4ff;border:1px solid #48617a;border-radius:8px;min-width:0;width:100%;padding:9px;font:inherit}
+ .business-nav .business-nav-switch{grid-column:2;grid-row:1;padding:7px;font-size:12px}
+}

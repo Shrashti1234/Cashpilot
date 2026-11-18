@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, FileText, FlaskConical, Plus, RefreshCw, Users, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Plus, RefreshCw, Users, X } from 'lucide-react';
 import { DecisionLab } from './DecisionLab';
 import { DisputeManagement } from './DisputeManagement';
 import { OperationsWorkspace } from './OperationsWorkspace';
@@ -14,7 +14,9 @@ import { FinancialApprovals } from './FinancialApprovals';
 import { TaxRegister } from './TaxRegister';
 import { ReceivableImport } from './ReceivableImport';
 import { CollectionsWorklist } from './CollectionsWorklist';
-import { BusinessOverview,type WorkspaceSection } from './BusinessOverview';
+import { BusinessOverview } from './BusinessOverview';
+import { WorkspaceNavigation } from './WorkspaceNavigation';
+import { accessibleWorkspaceGroups,type Destination } from './workspaceSections';
 import { languageNames, readLanguage, type Language } from './i18n';
 import { InvoiceManagement } from './InvoiceManagement';
 
@@ -25,24 +27,49 @@ const labels = {
  en:{back:'Switch business',customers:'Customers',subtitle:'Manage customer records for this business.',add:'Add customer',name:'Customer name',save:'Save customer',cancel:'Cancel',empty:'No customers yet. Add your first customer.',loading:'Loading customers…',failed:'Could not load customers.',saveFailed:'Could not save customer.',retry:'Retry',readonly:'Your role has read-only access.'},
  hi:{back:'व्यवसाय बदलें',customers:'ग्राहक',subtitle:'इस व्यवसाय के ग्राहक प्रबंधित करें।',add:'ग्राहक जोड़ें',name:'ग्राहक का नाम',save:'ग्राहक सहेजें',cancel:'रद्द करें',empty:'अभी कोई ग्राहक नहीं है। पहला ग्राहक जोड़ें।',loading:'ग्राहक लोड हो रहे हैं…',failed:'ग्राहक लोड नहीं हो सके।',saveFailed:'ग्राहक सहेजा नहीं जा सका।',retry:'दोबारा कोशिश करें',readonly:'आपके पास केवल देखने की अनुमति है।'}
 };
-export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) {
- const [overviewView,setOverviewView] = useState(true);
- const [labInitialTab,setLabInitialTab] = useState<'lab'|'history'>('lab');
- const [invoiceView,setInvoiceView] = useState(false);
- const [labView,setLabView] = useState(false);
- const [disputeView,setDisputeView] = useState(false);
- const [operationsView,setOperationsView] = useState(false);
- const [financeView,setFinanceView] = useState(false);
- const [teamView,setTeamView] = useState(false);
- const [buyerView,setBuyerView] = useState(false);
- const [bankView,setBankView] = useState(false);
- const [contactView,setContactView] = useState(false);
- const [journalView,setJournalView] = useState(false);
- const [evidenceView,setEvidenceView] = useState(false);
- const [approvalsView,setApprovalsView] = useState(false);
- const [taxView,setTaxView] = useState(false);
- const [importView,setImportView] = useState(false);
- const [collectionsView,setCollectionsView] = useState(false);
+export function CustomerManagement(props:Props){
+ return <BusinessWorkspaceShell key={props.workspace.id} {...props}/>;
+}
+
+function BusinessWorkspaceShell({apiUrl,accessToken,workspace,onBack}:Props){
+ const [section,setSection]=useState<Destination>('overview');
+ const body=useRef<HTMLDivElement>(null);
+ const permitted=section==='overview'||accessibleWorkspaceGroups(workspace.role).some(group=>group.items.some(item=>item.id===section));
+ const current=permitted?section:'overview';
+ function navigate(destination:Destination){
+  setSection(destination);
+  window.scrollTo(0,0);
+  requestAnimationFrame(()=>body.current?.focus());
+ }
+ const back=()=>navigate('overview');
+ const props={apiUrl,accessToken,workspace,onBack:back};
+ const screens={
+  overview:<BusinessOverview apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onOpen={navigate}/>,
+  customers:<CustomerRecords {...props}/>,
+  invoices:<InvoiceManagement {...props}/>,
+  collections:<CollectionsWorklist {...props}/>,
+  buyers:<BuyerAccessManager {...props}/>,
+  contacts:<ContactControls {...props}/>,
+  disputes:<DisputeManagement {...props}/>,
+  import:<ReceivableImport {...props}/>,
+  operations:<OperationsWorkspace {...props}/>,
+  finance:<FinanceWorkspace {...props}/>,
+  banking:<BankReconciliation {...props}/>,
+  tax:<TaxRegister {...props}/>,
+  cash:<DecisionLab {...props} initialTab="history"/>,
+  decision:<DecisionLab {...props}/>,
+  journal:<ForecastJournal {...props}/>,
+  approvals:<FinancialApprovals {...props}/>,
+  team:<TeamSettings {...props} onOwnAccessChanged={onBack}/>,
+  evidence:<InvoiceEvidence {...props}/>,
+ };
+ return <div className="business-shell">
+  <WorkspaceNavigation name={workspace.name} role={workspace.role} current={current} onNavigate={navigate} onSwitch={onBack}/>
+  <div className="business-section-body" key={current} ref={body} tabIndex={-1} role="region" aria-label="Business workspace">{screens[current]}</div>
+ </div>;
+}
+
+function CustomerRecords({apiUrl,accessToken,workspace,onBack}:Props) {
  const [language,setLanguage] = useState<Language>(readLanguage);
  const t = labels[language==='hi'?'hi':'en'];
  const [customers,setCustomers] = useState<Customer[]>([]);
@@ -64,7 +91,7 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   }catch(e){if(!signal?.aborted)setError(e instanceof Error?e.message:t.failed);}
   finally{if(!signal?.aborted)setLoading(false);}
  }
- useEffect(()=>{if(overviewView)return;const controller=new AbortController();void load(controller.signal);return()=>controller.abort();},[base,accessToken,overviewView]);
+ useEffect(()=>{const controller=new AbortController();void load(controller.signal);return()=>controller.abort();},[base,accessToken]);
  async function submit(event:React.FormEvent){
   event.preventDefault();if(!canWrite||!name.trim()||busy)return;
   setBusy(true);setError('');
@@ -77,41 +104,11 @@ export function CustomerManagement({apiUrl,accessToken,workspace,onBack}:Props) 
   }catch(e){setError(e instanceof Error?e.message:t.saveFailed);}
   finally{setBusy(false);}
  }
- function openSection(section:WorkspaceSection){
-  setCollectionsView(section==='collections');
-  setImportView(section==='import');
-  setTaxView(section==='tax');
-  setApprovalsView(section==='approvals');
-  setEvidenceView(section==='evidence');
-  setJournalView(section==='journal');
-  setContactView(section==='contacts');
-  setBankView(section==='banking');
-  setBuyerView(section==='buyers');
-  setOverviewView(false);setLabView(section==='decision'||section==='cash');setLabInitialTab(section==='cash'?'history':'lab');
-  setInvoiceView(section==='invoices');setOperationsView(section==='operations');setFinanceView(section==='finance');setDisputeView(section==='disputes');setTeamView(section==='team');
- }
- if(overviewView)return <BusinessOverview apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={onBack} onOpen={openSection}/>;
- if(buyerView)return <BuyerAccessManager apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setBuyerView(false)}/>;
- if(bankView)return <BankReconciliation apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setBankView(false)}/>;
- if(contactView)return <ContactControls apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setContactView(false)}/>;
- if(journalView)return <ForecastJournal apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setJournalView(false)}/>;
- if(evidenceView)return <InvoiceEvidence apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setEvidenceView(false)}/>;
- if(approvalsView)return <FinancialApprovals apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setApprovalsView(false)}/>;
- if(taxView)return <TaxRegister apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setTaxView(false)}/>;
- if(importView)return <ReceivableImport apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>{setImportView(false);setOverviewView(true);}}/>;
- if(collectionsView)return <CollectionsWorklist apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>{setCollectionsView(false);setOverviewView(true);}}/>;
- if(labView)return <DecisionLab apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} initialTab={labInitialTab} onBack={()=>setLabView(false)}/>;
- if(disputeView)return <DisputeManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setDisputeView(false)}/>;
- if(invoiceView)return <InvoiceManagement apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setInvoiceView(false)}/>;
- if(operationsView)return <OperationsWorkspace apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setOperationsView(false)}/>;
- if(financeView)return <FinanceWorkspace apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setFinanceView(false)}/>;
- if(teamView)return <TeamSettings apiUrl={apiUrl} accessToken={accessToken} workspace={workspace} onBack={()=>setTeamView(false)} onOwnAccessChanged={onBack}/>;
  return <div className="workspace-screen">
   <div className="workspace-top"><div className="workspace-brand"><Users size={23}/> CashPilot</div><select aria-label="Language" value={language} onChange={e=>{const next=e.target.value as Language;setLanguage(next);try{localStorage.setItem('cashpilot-language',next)}catch{}}}>{(Object.keys(languageNames) as Language[]).map(code=><option key={code} value={code}>{languageNames[code]}</option>)}</select></div>
   <div className="workspace-content">
-   <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>{t.back}</button>
-   <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div><div className="workspace-actions"><button className="workspace-secondary" onClick={()=>setLabView(true)}><FlaskConical size={17}/>Decision Lab</button><button className="workspace-secondary" onClick={()=>setDisputeView(true)}>Disputes &amp; activity</button><button className="workspace-secondary" onClick={()=>setInvoiceView(true)}><FileText size={17}/>Invoices</button>{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div></div>
-   <div className="workspace-actions" style={{marginBottom:24}}><button className="workspace-secondary" onClick={()=>setOverviewView(true)}>Business overview</button><button className="workspace-secondary" onClick={()=>setOperationsView(true)}>Products, stock & documents</button><button className="workspace-secondary" onClick={()=>setFinanceView(true)}>Adjustments & statements</button>{['owner','admin'].includes(workspace.role)&&<button className="workspace-secondary" onClick={()=>setTeamView(true)}>Team & access</button>}</div>
+   <button className="workspace-back" onClick={onBack}><ArrowLeft size={16}/>Business overview</button>
+   <div className="workspace-heading"><div><span className="eyebrow">{workspace.name}</span><h1>{t.customers}</h1><p>{t.subtitle}</p></div><div className="workspace-actions">{canWrite&&<button className="primary" onClick={()=>setShowForm(true)}><Plus size={17}/>{t.add}</button>}</div></div>
    {error&&<div className="error" role="alert">{error}<button onClick={()=>void load()} aria-label={t.retry}><RefreshCw size={17}/></button></div>}
    {loading?<div className="workspace-empty">{t.loading}</div>:customers.length===0?<div className="workspace-empty">{t.empty}</div>:<section className="panel"><div className="customer-list">{customers.map(customer=><div className="customer-row" key={customer.id}><span className="customer-avatar">{customer.name.charAt(0).toUpperCase()}</span><span>{customer.name}</span></div>)}</div></section>}
    {!canWrite&&<p>{t.readonly}</p>}

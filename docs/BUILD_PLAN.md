@@ -75,7 +75,11 @@ are the first implementation slice. GitHub feature branch checkpoints may be
 pushed; automatic Vercel deployment is disabled for that branch.
 
 Current local checkpoint: 130 backend tests (including fourteen PostgreSQL checks),
-64 frontend tests and frontend build pass. GitHub CI is separate from local verification.
+65 frontend tests and frontend build pass. GitHub CI is separate from local verification.
+The workspace now groups sections by workflow, with consistent return to overview
+and a mobile section selector. Local browser verification covered CSV import,
+history failure and retry, keyboard dismissal, invalid receipt precision,
+partial receipt posting and the resulting collections balance.
 Hosted recovery configuration and object-storage recovery remain unfinished.
 
 Progress must be recorded against acceptance criteria, not inferred from the
